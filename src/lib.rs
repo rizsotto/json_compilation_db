@@ -11,15 +11,63 @@
 
 pub mod api;
 
-pub use super::error::{Error, Result};
-pub use super::api::*;
+pub use error::{Error, Result};
+pub use api::*;
 
-// TODO: define error type and result
 mod error {
 
-    type Error = &'static str;
+    use std::fmt;
+    use std::error;
 
-    type Result<T> = std::result::Result<T, Error>;
+    #[derive(Debug)]
+    pub enum Error {
+        IoError(std::io::Error),
+        SyntaxError(serde_json::Error),
+        SemanticError(String),
+    }
+
+    impl fmt::Display for Error {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match *self {
+                Error::IoError(_) =>
+                    write!(f, "IO problem."),
+                Error::SyntaxError(_) =>
+                    write!(f, "Syntax problem."),
+                Error::SemanticError(ref message) =>
+                    write!(f, "Semantic problem: {}", message),
+            }
+        }
+    }
+
+    impl error::Error for Error {
+        fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+            match *self {
+                Error::IoError(ref cause) => Some(cause),
+                Error::SyntaxError(ref cause) => Some(cause),
+                Error::SemanticError(_) => None,
+            }
+        }
+    }
+
+    impl From<std::io::Error> for Error {
+        fn from(cause: std::io::Error) -> Self {
+            Error::IoError(cause)
+        }
+    }
+
+    impl From<serde_json::Error> for Error {
+        fn from(cause: serde_json::Error) -> Self {
+            Error::SyntaxError(cause)
+        }
+    }
+
+    impl From<String> for Error {
+        fn from(message: String) -> Self {
+            Error::SemanticError(message)
+        }
+    }
+
+    pub type Result<T> = std::result::Result<T, Error>;
 }
 
 #[cfg(test)]

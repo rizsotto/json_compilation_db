@@ -1,4 +1,32 @@
-use super::Result;
+use crate::Result;
+
+/// Represents an entry of the compilation database.
+#[derive(Debug)]
+pub struct Entry {
+    pub file: std::path::PathBuf,
+    pub command: Vec<String>,
+    pub directory: std::path::PathBuf,
+    pub output: Option<std::path::PathBuf>,
+}
+
+impl PartialEq for Entry {
+    fn eq(&self, other: &Entry) -> bool {
+        self.file == other.file
+            && self.command == other.command
+            && self.directory == other.directory
+    }
+}
+
+/// Represents a compilation database.
+pub trait CompilationDatabase {
+
+    type Entries;
+//    type Entries = Vec<Entry>;
+
+    fn load(&self) -> Result<Self::Entries>;
+
+    fn save(&self, entries: Self::Entries) -> Result<()>;
+}
 
 /// Represents the expected format of the JSON compilation database.
 #[derive(Debug, PartialEq, Eq)]
@@ -16,29 +44,3 @@ impl Default for Format {
     }
 }
 
-/// Represents a compilation database.
-pub trait CompilationDatabase {
-
-    fn load(&self) -> Result<Entries>;
-
-    fn save(&self, entries: Entries) -> Result<()>;
-}
-
-/// Represents an entry of the compilation database.
-#[derive(Debug)]
-pub struct Entry {
-    pub directory: std::path::PathBuf,
-    pub file: std::path::PathBuf,
-    pub command: Vec<String>,
-    pub output: Option<std::path::PathBuf>,
-}
-
-impl PartialEq for Entry {
-    fn eq(&self, other: &Entry) -> bool {
-        self.directory == other.directory
-            && self.file == other.file
-            && self.command == other.command
-    }
-}
-
-pub type Entries = Vec<Entry>;
