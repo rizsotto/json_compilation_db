@@ -1,4 +1,5 @@
 use crate::Result;
+use std::fs;
 
 /// Represents an entry of the compilation database.
 #[derive(Debug)]
@@ -9,14 +10,7 @@ pub struct Entry {
     pub output: Option<std::path::PathBuf>,
 }
 
-// TODO: Clarify if this is useful? (What is this solving?)
-impl PartialEq for Entry {
-    fn eq(&self, other: &Entry) -> bool {
-        self.file == other.file
-            && self.command == other.command
-            && self.directory == other.directory
-    }
-}
+pub type Entries = Vec<Entry>;
 
 /// Represents the expected format of the JSON compilation database.
 #[derive(Debug, PartialEq, Eq)]
@@ -34,20 +28,28 @@ impl Default for Format {
     }
 }
 
-pub type Entries = Vec<Entry>;
+pub fn load_from_file(file: &std::path::Path) -> Result<Entries> {
+    let reader = fs::OpenOptions::new()
+        .read(true)
+        .open(file)?;
 
-pub fn load_from_file(_file: &std::path::Path) -> Result<Entries> {
-    unimplemented!()
+    load_from_reader(reader)
 }
 
 pub fn load_from_reader(_reader: impl std::io::Read) -> Result<Entries> {
     unimplemented!()
 }
 
-pub fn save_into_file(_file: &std::path::Path, _entries: Entries, _format: &Format) -> Result<()> {
-    unimplemented!()
+pub fn save_into_file(file: &std::path::Path, entries: Entries, format: &Format) -> Result<()> {
+    let writer = fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(file)?;
+
+    save_into_writer(writer, entries, format)
 }
 
-pub fn save_into_writeer(_writer: impl std::io::Write, _entries: Entries, _format: &Format) -> Result<()> {
+pub fn save_into_writer(_writer: impl std::io::Write, _entries: Entries, _format: &Format) -> Result<()> {
     unimplemented!()
 }
