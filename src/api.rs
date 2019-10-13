@@ -9,23 +9,13 @@ pub struct Entry {
     pub output: Option<std::path::PathBuf>,
 }
 
+// TODO: Clarify if this is useful? (What is this solving?)
 impl PartialEq for Entry {
     fn eq(&self, other: &Entry) -> bool {
         self.file == other.file
             && self.command == other.command
             && self.directory == other.directory
     }
-}
-
-/// Represents a compilation database.
-pub trait CompilationDatabase {
-
-    type Entries;
-//    type Entries = Vec<Entry>;
-
-    fn load(&self) -> Result<Self::Entries>;
-
-    fn save(&self, entries: Self::Entries) -> Result<()>;
 }
 
 /// Represents the expected format of the JSON compilation database.
@@ -44,3 +34,20 @@ impl Default for Format {
     }
 }
 
+pub type Entries = Vec<Entry>;
+
+pub fn load_from_file(_file: &std::path::Path) -> Result<Entries> {
+    unimplemented!()
+}
+
+pub fn load_from_reader(_reader: impl std::io::Read) -> Result<Entries> {
+    unimplemented!()
+}
+
+pub fn save_into_file(_file: &std::path::Path, _entries: Entries, _format: &Format) -> Result<()> {
+    unimplemented!()
+}
+
+pub fn save_into_writeer(_writer: impl std::io::Write, _entries: Entries, _format: &Format) -> Result<()> {
+    unimplemented!()
+}

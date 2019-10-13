@@ -342,6 +342,7 @@ mod db {
             .map_err(std::convert::Into::into)
     }
 
+    // TODO: https://doc.rust-lang.org/std/convert/trait.TryFrom.html
     fn from(entry: &Entry, format: &Format) -> Result<GenericEntry> {
         fn path_to_string(path: &path::Path) -> Result<String> {
             match path.to_str() {
@@ -378,6 +379,7 @@ mod db {
         }
     }
 
+    // TODO: https://doc.rust-lang.org/std/convert/trait.TryInto.html
     fn into(entry: &GenericEntry) -> Result<Entry> {
         match entry {
             GenericEntry::ArrayEntry { directory, file, arguments, output } => {
