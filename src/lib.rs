@@ -10,6 +10,7 @@
 /// LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
 
 pub mod api;
+mod file;
 
 pub use error::{Error, Result};
 pub use api::*;

@@ -1,5 +1,4 @@
 use crate::Result;
-use std::fs;
 
 /// Represents an entry of the compilation database.
 #[derive(Debug)]
@@ -38,19 +37,19 @@ impl Default for Format {
 }
 
 pub fn load_from_file(file: &std::path::Path) -> Result<Entries> {
-    let reader = fs::OpenOptions::new()
+    let reader = std::fs::OpenOptions::new()
         .read(true)
         .open(file)?;
 
     load_from_reader(reader)
 }
 
-pub fn load_from_reader(_reader: impl std::io::Read) -> Result<Entries> {
-    unimplemented!()
+pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries> {
+    crate::file::load_from_reader(reader)
 }
 
 pub fn save_into_file(file: &std::path::Path, entries: Entries, format: &Format) -> Result<()> {
-    let writer = fs::OpenOptions::new()
+    let writer = std::fs::OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
@@ -59,8 +58,8 @@ pub fn save_into_file(file: &std::path::Path, entries: Entries, format: &Format)
     save_into_writer(writer, entries, format)
 }
 
-pub fn save_into_writer(_writer: impl std::io::Write, _entries: Entries, _format: &Format) -> Result<()> {
-    unimplemented!()
+pub fn save_into_writer(writer: impl std::io::Write, entries: Entries, format: &Format) -> Result<()> {
+    crate::file::save_into_writer(writer, entries, format)
 }
 
 

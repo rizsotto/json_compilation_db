@@ -1,18 +1,15 @@
 [package]
 name = "json-cdb"
 version = "0.1.0"
-authors = ["Laszlo Nagy <rizsotto@gmail.com>"]
+authors = ["László Nagy <rizsotto at gmail dot com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = "1.0"
-serde_derive = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 shellwords = "1.0"
 
 [dev-dependencies]
 tempfile = "3.1"
-#mockers_derive = "0.21"
-#mockers = "0.21"
