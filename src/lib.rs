@@ -9,10 +9,9 @@
 /// as an array. The definition of the JSON compilation database files is done in the
 /// LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
 
-pub mod api;
-mod file;
+mod inner;
 
-pub use error::{Error, Result};
+pub use error::*;
 pub use api::*;
 
 mod error {
@@ -69,4 +68,61 @@ mod error {
     }
 
     pub type Result<T> = std::result::Result<T, Error>;
+}
+
+mod api {
+
+    use super::*;
+
+    /// Represents an entry of the compilation database.
+    #[derive(Debug, PartialEq)]
+    pub struct Entry {
+        pub file: std::path::PathBuf,
+        pub command: Vec<String>,
+        pub directory: std::path::PathBuf,
+        pub output: Option<std::path::PathBuf>,
+    }
+
+    /// Represents the content of the compilation database.
+    pub type Entries = Vec<Entry>;
+
+    /// Represents the expected format of the JSON compilation database.
+    #[derive(Debug, PartialEq, Eq)]
+    pub struct Format {
+        pub command_as_array: bool,
+    }
+
+    impl Default for Format {
+        fn default() -> Self {
+            Format {
+                command_as_array: true,
+            }
+        }
+    }
+
+    pub fn load_from_file(file: &std::path::Path) -> Result<Entries> {
+        let reader = std::fs::OpenOptions::new()
+            .read(true)
+            .open(file)?;
+
+        load_from_reader(reader)
+    }
+
+    pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries> {
+        crate::inner::load_from_reader(reader)
+    }
+
+    pub fn save_into_file(file: &std::path::Path, entries: Entries, format: &Format) -> Result<()> {
+        let writer = std::fs::OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .create(true)
+            .open(file)?;
+
+        save_into_writer(writer, entries, format)
+    }
+
+    pub fn save_into_writer(writer: impl std::io::Write, entries: Entries, format: &Format) -> Result<()> {
+        crate::inner::save_into_writer(writer, entries, format)
+    }
 }
