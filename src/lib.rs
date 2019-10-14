@@ -15,13 +15,13 @@ pub use error::*;
 pub use api::*;
 
 mod error {
-
     use std::fmt;
     use std::error;
+    use std::io;
 
     #[derive(Debug)]
     pub enum Error {
-        IoError(std::io::Error),
+        IoError(io::Error),
         SyntaxError(serde_json::Error),
         SemanticError(String),
     }
@@ -49,8 +49,8 @@ mod error {
         }
     }
 
-    impl From<std::io::Error> for Error {
-        fn from(cause: std::io::Error) -> Self {
+    impl From<io::Error> for Error {
+        fn from(cause: io::Error) -> Self {
             Error::IoError(cause)
         }
     }
@@ -71,16 +71,20 @@ mod error {
 }
 
 mod api {
+    use super::error::*;
+    use super::inner;
 
-    use super::*;
+    use std::path;
+    use std::io;
+    use std::fs;
 
     /// Represents an entry of the compilation database.
     #[derive(Debug, PartialEq)]
     pub struct Entry {
-        pub file: std::path::PathBuf,
+        pub file: path::PathBuf,
         pub command: Vec<String>,
-        pub directory: std::path::PathBuf,
-        pub output: Option<std::path::PathBuf>,
+        pub directory: path::PathBuf,
+        pub output: Option<path::PathBuf>,
     }
 
     /// Represents the content of the compilation database.
@@ -100,20 +104,20 @@ mod api {
         }
     }
 
-    pub fn load_from_file(file: &std::path::Path) -> Result<Entries> {
-        let reader = std::fs::OpenOptions::new()
+    pub fn load_from_file(file: &path::Path) -> Result<Entries> {
+        let reader = fs::OpenOptions::new()
             .read(true)
             .open(file)?;
 
         load_from_reader(reader)
     }
 
-    pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries> {
-        crate::inner::load_from_reader(reader)
+    pub fn load_from_reader(reader: impl io::Read) -> Result<Entries> {
+        inner::load_from_reader(reader)
     }
 
-    pub fn save_into_file(file: &std::path::Path, entries: Entries, format: &Format) -> Result<()> {
-        let writer = std::fs::OpenOptions::new()
+    pub fn save_into_file(file: &path::Path, entries: Entries, format: &Format) -> Result<()> {
+        let writer = fs::OpenOptions::new()
             .write(true)
             .truncate(true)
             .create(true)
@@ -122,7 +126,7 @@ mod api {
         save_into_writer(writer, entries, format)
     }
 
-    pub fn save_into_writer(writer: impl std::io::Write, entries: Entries, format: &Format) -> Result<()> {
-        crate::inner::save_into_writer(writer, entries, format)
+    pub fn save_into_writer(writer: impl io::Write, entries: Entries, format: &Format) -> Result<()> {
+        inner::save_into_writer(writer, entries, format)
     }
 }

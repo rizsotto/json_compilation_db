@@ -113,7 +113,7 @@ fn try_into_entry(value: &GenericEntry) -> Result<Entry> {
                 command: arguments.clone(),
                 output: output_path,
             })
-        },
+        }
         GenericEntry::StringEntry { directory, file, command, output } => {
             match shellwords::split(command) {
                 Ok(arguments) => {
@@ -126,7 +126,7 @@ fn try_into_entry(value: &GenericEntry) -> Result<Entry> {
                         command: arguments,
                         output: output_path,
                     })
-                },
+                }
                 Err(_) =>
                     Err(format!("Quotes are mismatch in {:?}", command).into()),
             }

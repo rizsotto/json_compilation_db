@@ -149,12 +149,11 @@ fn test_save_array_command() -> Result<()> {
 }
 
 mod fixtures {
-
     use super::*;
     use std::path;
     use std::fs;
     use std::io::{Read, Write};
-    
+
     macro_rules! vec_of_strings {
         ($($x:expr),*) => (vec![$($x.to_string()),*]);
     }
