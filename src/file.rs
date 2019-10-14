@@ -7,6 +7,20 @@ use serde::{Serialize, Deserialize};
 use serde_json;
 use shellwords;
 
+pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries> {
+    let generic_entries: GenericEntries = serde_json::from_reader(reader)?;
+
+    try_into_entries(generic_entries)
+}
+
+pub fn save_into_writer(writer: impl std::io::Write, entries: Entries, format: &Format) -> Result<()> {
+    let generic_entries: GenericEntries = try_from_entries(entries, format)?;
+
+    serde_json::ser::to_writer_pretty(writer, &generic_entries)
+        .map_err(std::convert::Into::into)
+}
+
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 enum GenericEntry {
@@ -28,18 +42,18 @@ enum GenericEntry {
 
 type GenericEntries = Vec<GenericEntry>;
 
-// TODO: https://doc.rust-lang.org/std/convert/trait.TryFrom.html
-fn from(entry: &Entry, format: &Format) -> Result<GenericEntry> {
-    fn path_to_string(path: &path::Path) -> Result<String> {
-        match path.to_str() {
-            Some(str) => Ok(str.to_string()),
-            None => Err(format!("Failed to convert to string {:?}", path).into()),
-        }
-    }
 
-    let directory = path_to_string(entry.directory.as_path())?;
-    let file = path_to_string(entry.file.as_path())?;
-    let output = match entry.output {
+fn try_from_entries(values: Entries, format: &Format) -> Result<GenericEntries> {
+    values
+        .iter()
+        .map(|entry| try_from_entry(entry, format))
+        .collect::<Result<Vec<_>>>()
+}
+
+fn try_from_entry(value: &Entry, format: &Format) -> Result<GenericEntry> {
+    let directory = path_to_string(value.directory.as_path())?;
+    let file = path_to_string(value.file.as_path())?;
+    let output = match value.output {
         Some(ref path) => path_to_string(path).map(Option::Some),
         None => Ok(None),
     }?;
@@ -47,7 +61,7 @@ fn from(entry: &Entry, format: &Format) -> Result<GenericEntry> {
         Ok(GenericEntry::ArrayEntry {
             directory,
             file,
-            arguments: entry.command.clone(),
+            arguments: value.command.clone(),
             output,
         })
     } else {
@@ -55,7 +69,7 @@ fn from(entry: &Entry, format: &Format) -> Result<GenericEntry> {
             directory,
             file,
             command: shellwords::join(
-                entry.command
+                value.command
                     .iter()
                     .map(String::as_str)
                     .collect::<Vec<_>>()
@@ -65,9 +79,30 @@ fn from(entry: &Entry, format: &Format) -> Result<GenericEntry> {
     }
 }
 
-// TODO: https://doc.rust-lang.org/std/convert/trait.TryInto.html
-fn into(entry: &GenericEntry) -> Result<Entry> {
-    match entry {
+fn path_to_string(path: &path::Path) -> Result<String> {
+    match path.to_str() {
+        Some(str) => Ok(str.to_string()),
+        None => Err(format!("Failed to convert to string {:?}", path).into()),
+    }
+}
+
+fn try_into_entries(values: GenericEntries) -> Result<Entries> {
+    values.iter()
+        .map(|entry| try_into_entry(entry))
+        .collect::<Result<Entries>>()
+        .map_err(|_|
+            values.iter()
+                .map(|entry| try_into_entry(entry))
+                .filter_map(Result::err)
+                .map(|error| error.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+                .into()
+        )
+}
+
+fn try_into_entry(value: &GenericEntry) -> Result<Entry> {
+    match value {
         GenericEntry::ArrayEntry { directory, file, arguments, output } => {
             let directory_path = path::PathBuf::from(directory);
             let file_path = path::PathBuf::from(file);
@@ -97,33 +132,4 @@ fn into(entry: &GenericEntry) -> Result<Entry> {
             }
         }
     }
-}
-
-pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries> {
-    let generic_entries: GenericEntries = serde_json::from_reader(reader)?;
-    let entries = generic_entries.iter()
-        .map(|entry| into(entry))
-        .collect::<Result<Entries>>();
-    // In case of error, let's be verbose which entries were problematic.
-    if entries.is_err() {
-        let errors = generic_entries.iter()
-            .map(|entry| into(entry))
-            .filter_map(Result::err)
-            .map(|error| error.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
-        Err(errors.into())
-    } else {
-        entries
-    }
-}
-
-pub fn save_into_writer(writer: impl std::io::Write, entries: Entries, format: &Format) -> Result<()> {
-    let generic_entries = entries
-        .iter()
-        .map(|entry| from(entry, format))
-        .collect::<Result<Vec<_>>>()?;
-
-    serde_json::ser::to_writer_pretty(writer, &generic_entries)
-        .map_err(std::convert::Into::into)
 }
