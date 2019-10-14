@@ -16,14 +16,12 @@ pub type Entries = Vec<Entry>;
 #[derive(Debug, PartialEq, Eq)]
 pub struct Format {
     pub command_as_array: bool,
-    pub drop_output_field: bool,
 }
 
 impl Default for Format {
     fn default() -> Self {
         Format {
             command_as_array: true,
-            drop_output_field: false,
         }
     }
 }
