@@ -9,15 +9,7 @@ pub struct Entry {
     pub output: Option<std::path::PathBuf>,
 }
 
-#[cfg(test)]
-impl PartialEq for Entry {
-    fn eq(&self, other: &Entry) -> bool {
-        self.directory == other.directory
-            && self.file == other.file
-            && self.command == other.command
-    }
-}
-
+/// Represents the content of the compilation database.
 pub type Entries = Vec<Entry>;
 
 /// Represents the expected format of the JSON compilation database.
@@ -67,6 +59,14 @@ pub fn save_into_writer(writer: impl std::io::Write, entries: Entries, format: &
 mod test {
     use super::*;
     use fixtures::*;
+
+    impl PartialEq for Entry {
+        fn eq(&self, other: &Entry) -> bool {
+            self.directory == other.directory
+                && self.file == other.file
+                && self.command == other.command
+        }
+    }
 
     macro_rules! vec_of_strings {
         ($($x:expr),*) => (vec![$($x.to_string()),*]);
