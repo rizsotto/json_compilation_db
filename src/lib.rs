@@ -104,6 +104,8 @@ mod api {
         }
     }
 
+    pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
+
     pub fn load_from_file(file: &path::Path) -> Result<Entries> {
         let reader = fs::OpenOptions::new()
             .read(true)

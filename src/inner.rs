@@ -45,12 +45,12 @@ type GenericEntries = Vec<GenericEntry>;
 
 fn try_from_entries(values: Entries, format: &Format) -> Result<GenericEntries> {
     values
-        .iter()
+        .into_iter()
         .map(|entry| try_from_entry(entry, format))
         .collect::<Result<Vec<_>>>()
 }
 
-fn try_from_entry(value: &Entry, format: &Format) -> Result<GenericEntry> {
+fn try_from_entry(value: Entry, format: &Format) -> Result<GenericEntry> {
     let directory = path_to_string(value.directory.as_path())?;
     let file = path_to_string(value.file.as_path())?;
     let output = match value.output {
@@ -87,26 +87,17 @@ fn path_to_string(path: &path::Path) -> Result<String> {
 }
 
 fn try_into_entries(values: GenericEntries) -> Result<Entries> {
-    values.iter()
+    values.into_iter()
         .map(|entry| try_into_entry(entry))
         .collect::<Result<Entries>>()
-        .map_err(|_|
-            values.iter()
-                .map(|entry| try_into_entry(entry))
-                .filter_map(Result::err)
-                .map(|error| error.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-                .into()
-        )
 }
 
-fn try_into_entry(value: &GenericEntry) -> Result<Entry> {
+fn try_into_entry(value: GenericEntry) -> Result<Entry> {
     match value {
         GenericEntry::ArrayEntry { directory, file, arguments, output } => {
             let directory_path = path::PathBuf::from(directory);
             let file_path = path::PathBuf::from(file);
-            let output_path = output.clone().map(path::PathBuf::from);
+            let output_path = output.map(path::PathBuf::from);
             Ok(Entry {
                 directory: directory_path,
                 file: file_path,
@@ -115,7 +106,7 @@ fn try_into_entry(value: &GenericEntry) -> Result<Entry> {
             })
         }
         GenericEntry::StringEntry { directory, file, command, output } => {
-            match shellwords::split(command) {
+            match shellwords::split(command.as_str()) {
                 Ok(arguments) => {
                     let directory_path = path::PathBuf::from(directory);
                     let file_path = path::PathBuf::from(file);
