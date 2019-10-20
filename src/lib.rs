@@ -8,15 +8,14 @@
 /// compilation database, which is a simple JSON file having the list of compilation
 /// as an array. The definition of the JSON compilation database files is done in the
 /// LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
-
 mod inner;
 
-pub use error::*;
 pub use api::*;
+pub use error::*;
 
 mod error {
-    use std::fmt;
     use std::error;
+    use std::fmt;
     use std::io;
 
     #[derive(Debug)]
@@ -29,12 +28,9 @@ mod error {
     impl fmt::Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match *self {
-                Error::IoError(_) =>
-                    write!(f, "IO problem."),
-                Error::SyntaxError(_) =>
-                    write!(f, "Syntax problem."),
-                Error::SemanticError(ref message) =>
-                    write!(f, "Semantic problem: {}", message),
+                Error::IoError(_) => write!(f, "IO problem."),
+                Error::SyntaxError(_) => write!(f, "Syntax problem."),
+                Error::SemanticError(ref message) => write!(f, "Semantic problem: {}", message),
             }
         }
     }
@@ -74,9 +70,9 @@ mod api {
     use super::error::*;
     use super::inner;
 
-    use std::path;
-    use std::io;
     use std::fs;
+    use std::io;
+    use std::path;
 
     /// Represents an entry of the compilation database.
     #[derive(Debug, PartialEq)]
@@ -107,9 +103,7 @@ mod api {
     pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
 
     pub fn load_from_file(file: &path::Path) -> Result<Entries> {
-        let reader = fs::OpenOptions::new()
-            .read(true)
-            .open(file)?;
+        let reader = fs::OpenOptions::new().read(true).open(file)?;
 
         load_from_reader(reader)
     }
@@ -128,7 +122,11 @@ mod api {
         save_into_writer(writer, entries, format)
     }
 
-    pub fn save_into_writer(writer: impl io::Write, entries: Entries, format: &Format) -> Result<()> {
+    pub fn save_into_writer(
+        writer: impl io::Write,
+        entries: Entries,
+        format: &Format,
+    ) -> Result<()> {
         inner::save_into_writer(writer, entries, format)
     }
 }

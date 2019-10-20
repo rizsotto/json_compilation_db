@@ -1,9 +1,9 @@
-use crate::error::Result;
 use crate::api::*;
+use crate::error::Result;
 
 use std::path;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json;
 use shellwords;
 
@@ -13,13 +13,15 @@ pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries> {
     try_into_entries(generic_entries)
 }
 
-pub fn save_into_writer(writer: impl std::io::Write, entries: Entries, format: &Format) -> Result<()> {
+pub fn save_into_writer(
+    writer: impl std::io::Write,
+    entries: Entries,
+    format: &Format,
+) -> Result<()> {
     let generic_entries: GenericEntries = try_from_entries(entries, format)?;
 
-    serde_json::ser::to_writer_pretty(writer, &generic_entries)
-        .map_err(std::convert::Into::into)
+    serde_json::ser::to_writer_pretty(writer, &generic_entries).map_err(std::convert::Into::into)
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -41,7 +43,6 @@ enum GenericEntry {
 }
 
 type GenericEntries = Vec<GenericEntry>;
-
 
 fn try_from_entries(values: Entries, format: &Format) -> Result<GenericEntries> {
     values
@@ -69,11 +70,13 @@ fn try_from_entry(value: Entry, format: &Format) -> Result<GenericEntry> {
             directory,
             file,
             command: shellwords::join(
-                value.command
+                value
+                    .command
                     .iter()
                     .map(String::as_str)
                     .collect::<Vec<_>>()
-                    .as_ref()),
+                    .as_ref(),
+            ),
             output,
         })
     }
@@ -87,14 +90,20 @@ fn path_to_string(path: &path::Path) -> Result<String> {
 }
 
 fn try_into_entries(values: GenericEntries) -> Result<Entries> {
-    values.into_iter()
+    values
+        .into_iter()
         .map(try_into_entry)
         .collect::<Result<Entries>>()
 }
 
 fn try_into_entry(value: GenericEntry) -> Result<Entry> {
     match value {
-        GenericEntry::ArrayEntry { directory, file, arguments, output } => {
+        GenericEntry::ArrayEntry {
+            directory,
+            file,
+            arguments,
+            output,
+        } => {
             let directory_path = path::PathBuf::from(directory);
             let file_path = path::PathBuf::from(file);
             let output_path = output.map(path::PathBuf::from);
@@ -105,22 +114,24 @@ fn try_into_entry(value: GenericEntry) -> Result<Entry> {
                 output: output_path,
             })
         }
-        GenericEntry::StringEntry { directory, file, command, output } => {
-            match shellwords::split(command.as_str()) {
-                Ok(arguments) => {
-                    let directory_path = path::PathBuf::from(directory);
-                    let file_path = path::PathBuf::from(file);
-                    let output_path = output.clone().map(path::PathBuf::from);
-                    Ok(Entry {
-                        directory: directory_path,
-                        file: file_path,
-                        command: arguments,
-                        output: output_path,
-                    })
-                }
-                Err(_) =>
-                    Err(format!("Quotes are mismatch in {:?}", command).into()),
+        GenericEntry::StringEntry {
+            directory,
+            file,
+            command,
+            output,
+        } => match shellwords::split(command.as_str()) {
+            Ok(arguments) => {
+                let directory_path = path::PathBuf::from(directory);
+                let file_path = path::PathBuf::from(file);
+                let output_path = output.clone().map(path::PathBuf::from);
+                Ok(Entry {
+                    directory: directory_path,
+                    file: file_path,
+                    command: arguments,
+                    output: output_path,
+                })
             }
-        }
+            Err(_) => Err(format!("Quotes are mismatch in {:?}", command).into()),
+        },
     }
 }

@@ -8,43 +8,45 @@ fn load_failed_on_not_existing_file() {
 }
 
 #[test]
-fn load_failed_on_non_json_content() {
-    let directory = fixtures::create_test_dir()
-        .expect("test file setup failed");
-    let file = fixtures::create_file_with_content(&directory, br#"this is not json"#)
-        .expect("test file content write failed");
+fn load_failed_on_non_json_content() -> Result<()> {
+    let directory = fixtures::create_test_dir()?;
+    let file = fixtures::create_file_with_content(&directory, br#"this is not json"#)?;
 
     let result = load_from_file(file.as_path());
     assert_syntax_error!(&result);
+
+    Ok(())
 }
 
 #[test]
-fn load_failed_not_expected_json_content() {
-    let directory = fixtures::create_test_dir()
-        .expect("test file setup failed");
-    let file = fixtures::create_file_with_content(&directory, br#"{ "file": "string" }"#)
-        .expect("test file content write failed");
+fn load_failed_not_expected_json_content() -> Result<()> {
+    let directory = fixtures::create_test_dir()?;
+    let file = fixtures::create_file_with_content(&directory, br#"{ "file": "string" }"#)?;
 
     let result = load_from_file(file.as_path());
     assert_syntax_error!(&result);
+
+    Ok(())
 }
 
 #[test]
-fn load_failed_on_semantic_problem() {
-    let directory = fixtures::create_test_dir()
-        .expect("test file setup failed");
-    let file = fixtures::create_file_with_content(&directory, br#"[
+fn load_failed_on_semantic_problem() -> Result<()> {
+    let directory = fixtures::create_test_dir()?;
+    let file = fixtures::create_file_with_content(
+        &directory,
+        br#"[
             {
                 "directory": " ",
                 "file": "./file_a.c",
                 "command": "cc -Dvalue=\"this"
             }
-        ]"#
-    )
-        .expect("test file content write failed");
+        ]"#,
+    )?;
 
     let result = load_from_file(file.as_path());
     assert_semantic_error!(result);
+
+    Ok(())
 }
 
 #[test]
@@ -65,7 +67,9 @@ fn load_successful_content_with_string_command_syntax() -> Result<()> {
     let expected = fixtures::expected_values();
 
     let directory = fixtures::create_test_dir()?;
-    let file = fixtures::create_file_with_content(&directory, br#"[
+    let file = fixtures::create_file_with_content(
+        &directory,
+        br#"[
             {
                 "directory": "/home/user",
                 "file": "./file_a.c",
@@ -77,7 +81,8 @@ fn load_successful_content_with_string_command_syntax() -> Result<()> {
                 "output": "./file_b.o",
                 "command": "cc -c ./file_b.c -o ./file_b.o"
             }
-    ]"#)?;
+        ]"#,
+    )?;
 
     let entries = load_from_file(file.as_path())?;
     assert_eq!(expected, entries);
@@ -90,7 +95,9 @@ fn load_successful_content_with_array_command_syntax() -> Result<()> {
     let expected = fixtures::expected_values();
 
     let directory = fixtures::create_test_dir()?;
-    let file = fixtures::create_file_with_content(&directory, br#"[
+    let file = fixtures::create_file_with_content(
+        &directory,
+        br#"[
             {
                 "directory": "/home/user",
                 "file": "./file_a.c",
@@ -102,7 +109,8 @@ fn load_successful_content_with_array_command_syntax() -> Result<()> {
                 "output": "./file_b.o",
                 "arguments": ["cc", "-c", "./file_b.c", "-o", "./file_b.o"]
             }
-    ]"#)?;
+        ]"#,
+    )?;
 
     let entries = load_from_file(file.as_path())?;
     assert_eq!(expected, entries);
@@ -127,7 +135,9 @@ fn save_successful_with_string_command_syntax() -> Result<()> {
 
     let directory = fixtures::create_test_dir()?;
     let file = fixtures::create_file(&directory);
-    let format = Format { command_as_array: false };
+    let format = Format {
+        command_as_array: false,
+    };
 
     save_into_file(file.as_path(), input, &format)?;
 
@@ -147,7 +157,9 @@ fn save_successful_with_array_command_syntax() -> Result<()> {
 
     let directory = fixtures::create_test_dir()?;
     let file = fixtures::create_file(&directory);
-    let format = Format { command_as_array: true };
+    let format = Format {
+        command_as_array: true,
+    };
 
     save_into_file(file.as_path(), input, &format)?;
 
@@ -162,9 +174,9 @@ fn save_successful_with_array_command_syntax() -> Result<()> {
 
 mod fixtures {
     use super::*;
-    use std::path;
     use std::fs;
     use std::io::{Read, Write};
+    use std::path;
 
     #[macro_export]
     macro_rules! assert_io_error {
@@ -209,7 +221,6 @@ mod fixtures {
         Ok(directory)
     }
 
-
     pub fn create_file(directory: &tempfile::TempDir) -> path::PathBuf {
         let mut file = directory.path().to_path_buf();
         file.push(DEFAULT_FILE_NAME);
@@ -228,16 +239,17 @@ mod fixtures {
         Ok(())
     }
 
-    pub fn create_file_with_content(directory: &tempfile::TempDir, content: &[u8]) -> Result<path::PathBuf> {
+    pub fn create_file_with_content(
+        directory: &tempfile::TempDir,
+        content: &[u8],
+    ) -> Result<path::PathBuf> {
         let file = create_file(directory);
         with_content(file.as_path(), content)?;
         Ok(file)
     }
 
     pub fn read_content_from(path: &path::Path) -> Result<String> {
-        let mut file = fs::OpenOptions::new()
-            .read(true)
-            .open(path)?;
+        let mut file = fs::OpenOptions::new().read(true).open(path)?;
 
         let mut result = String::new();
         file.read_to_string(&mut result)?;
@@ -245,23 +257,19 @@ mod fixtures {
     }
 
     pub fn expected_values() -> Entries {
-        let mut expected: Entries = Entries::new();
-        expected.push(
+        vec![
             Entry {
                 directory: path::PathBuf::from("/home/user"),
                 file: path::PathBuf::from("./file_a.c"),
                 command: vec_of_strings!("cc", "-c", "./file_a.c", "-o", "./file_a.o"),
                 output: None,
-            }
-        );
-        expected.push(
+            },
             Entry {
                 directory: path::PathBuf::from("/home/user"),
                 file: path::PathBuf::from("./file_b.c"),
                 command: vec_of_strings!("cc", "-c", "./file_b.c", "-o", "./file_b.o"),
                 output: Some(path::PathBuf::from("./file_b.o")),
-            }
-        );
-        expected
+            },
+        ]
     }
 }
