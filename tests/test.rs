@@ -114,7 +114,7 @@ fn save_failed_on_not_exsisting_directory() {
     let comp_db_file = std::path::Path::new("/not/existing/path");
 
     let input = fixtures::expected_values();
-    let format = Format { command_as_array: false, ..Format::default() };
+    let format = Format::default();
 
     let result = save_into_file(&comp_db_file, input, &format);
     assert_io_error!(&result);
@@ -127,7 +127,7 @@ fn save_successful_with_string_command_syntax() -> Result<()> {
 
     let directory = fixtures::create_test_dir()?;
     let file = fixtures::create_file(&directory);
-    let format = Format { command_as_array: false, ..Format::default() };
+    let format = Format { command_as_array: false };
 
     save_into_file(file.as_path(), input, &format)?;
 
@@ -147,7 +147,7 @@ fn save_successful_with_array_command_syntax() -> Result<()> {
 
     let directory = fixtures::create_test_dir()?;
     let file = fixtures::create_file(&directory);
-    let format = Format { command_as_array: true, ..Format::default() };
+    let format = Format { command_as_array: true };
 
     save_into_file(file.as_path(), input, &format)?;
 
@@ -224,13 +224,13 @@ mod fixtures {
             .create(true)
             .open(path)?;
 
-        file.write(content)?;
+        file.write_all(content)?;
         Ok(())
     }
 
     pub fn create_file_with_content(directory: &tempfile::TempDir, content: &[u8]) -> Result<path::PathBuf> {
         let file = create_file(directory);
-        let _ = with_content(file.as_path(), content)?;
+        with_content(file.as_path(), content)?;
         Ok(file)
     }
 

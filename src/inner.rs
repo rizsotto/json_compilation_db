@@ -88,7 +88,7 @@ fn path_to_string(path: &path::Path) -> Result<String> {
 
 fn try_into_entries(values: GenericEntries) -> Result<Entries> {
     values.into_iter()
-        .map(|entry| try_into_entry(entry))
+        .map(try_into_entry)
         .collect::<Result<Entries>>()
 }
 
