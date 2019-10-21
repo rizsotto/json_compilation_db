@@ -66,7 +66,7 @@ fn try_from_entry(value: Entry, format: &Format) -> Result<GenericEntry, Error> 
         Ok(GenericEntry::ArrayEntry {
             directory,
             file,
-            arguments: value.command.clone(),
+            arguments: value.arguments.clone(),
             output,
         })
     } else {
@@ -75,7 +75,7 @@ fn try_from_entry(value: Entry, format: &Format) -> Result<GenericEntry, Error> 
             file,
             command: shellwords::join(
                 value
-                    .command
+                    .arguments
                     .iter()
                     .map(String::as_str)
                     .collect::<Vec<_>>()
@@ -114,7 +114,7 @@ fn try_into_entry(value: GenericEntry) -> Result<Entry, Error> {
             Ok(Entry {
                 directory: directory_path,
                 file: file_path,
-                command: arguments.clone(),
+                arguments: arguments.clone(),
                 output: output_path,
             })
         }
@@ -131,7 +131,7 @@ fn try_into_entry(value: GenericEntry) -> Result<Entry, Error> {
                 Ok(Entry {
                     directory: directory_path,
                     file: file_path,
-                    command: arguments,
+                    arguments: arguments,
                     output: output_path,
                 })
             }

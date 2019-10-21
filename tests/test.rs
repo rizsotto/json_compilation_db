@@ -94,7 +94,7 @@ mod failures {
         let input = vec![Entry {
             directory: std::path::PathBuf::from("/home/user"),
             file: std::path::PathBuf::from("./file_a.c"),
-            command: vec_of_strings!("cc", "-c", "./file_a.c", "-o", "./file_a.o"),
+            arguments: vec_of_strings!("cc", "-c", "./file_a.c", "-o", "./file_a.o"),
             output: None,
         }];
         let format = Format::default();
@@ -134,13 +134,13 @@ mod success {
                 Entry {
                     directory: std::path::PathBuf::from("/home/user"),
                     file: std::path::PathBuf::from("./file_a.c"),
-                    command: vec_of_strings!("cc", "-c", "./file_a.c", "-o", "./file_a.o"),
+                    arguments: vec_of_strings!("cc", "-c", "./file_a.c", "-o", "./file_a.o"),
                     output: None,
                 },
                 Entry {
                     directory: std::path::PathBuf::from("/home/user"),
                     file: std::path::PathBuf::from("./file_b.c"),
-                    command: vec_of_strings!("cc", "-c", "./file_b.c", "-o", "./file_b.o"),
+                    arguments: vec_of_strings!("cc", "-c", "./file_b.c", "-o", "./file_b.o"),
                     output: Some(std::path::PathBuf::from("./file_b.o")),
                 },
             ]
@@ -251,7 +251,7 @@ mod success {
                 Entry {
                     directory: std::path::PathBuf::from("/home/user"),
                     file: std::path::PathBuf::from("./file_a.c"),
-                    command: vec_of_strings!(
+                    arguments: vec_of_strings!(
                         "cc",
                         "-c",
                         "-D",
@@ -265,7 +265,7 @@ mod success {
                 Entry {
                     directory: std::path::PathBuf::from("/home/user"),
                     file: std::path::PathBuf::from("./file_b.c"),
-                    command: vec_of_strings!(
+                    arguments: vec_of_strings!(
                         "cc",
                         "-c",
                         "-D",

@@ -87,11 +87,10 @@ mod api {
         /// There can be multiple command objects for the same file, for example if the same
         /// source file is compiled with different configurations.
         pub file: path::PathBuf,
-        // TODO: rename it to arguments
         /// The compile command executed. After JSON unescaping, this must be a valid command
         /// to rerun the exact compilation step for the translation unit in the environment
         /// the build system uses. Shell expansion is not supported.
-        pub command: Vec<String>,
+        pub arguments: Vec<String>,
         /// The working directory of the compilation. All paths specified in the command or
         /// file fields must be either absolute or relative to this directory.
         pub directory: path::PathBuf,
