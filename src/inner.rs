@@ -7,6 +7,70 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use shellwords;
 
+fn validate(entry: &Entry) -> Result<(), Error> {
+    // TODO: add validation
+    Ok(())
+}
+
+fn validate_array(entries: &Entries) -> Result<(), Error> {
+    // TODO: add validation
+    Ok(())
+}
+
+fn to_command(arguments: &[String]) -> String {
+    shellwords::join(
+        arguments
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .as_ref(),
+    )
+}
+
+fn to_json(entry: &Entry, format: &Format) -> Result<serde_json::Value, Error> {
+    match (format.command_as_array, entry.output.is_some()) {
+        (true,  true)  =>
+            Ok(serde_json::json!({
+                "directory": entry.directory,
+                "file": entry.file,
+                "arguments": entry.arguments,
+                "output": entry.output,
+            })),
+        (true,  false) =>
+            Ok(serde_json::json!({
+                "directory": entry.directory,
+                "file": entry.file,
+                "arguments": entry.arguments,
+            })),
+        (false, true)  =>
+            Ok(serde_json::json!({
+                "directory": entry.directory,
+                "file": entry.file,
+                "command": to_command(entry.arguments.as_ref()),
+                "output": entry.output,
+            })),
+        (false, false) =>
+            Ok(serde_json::json!({
+                "directory": entry.directory,
+                "file": entry.file,
+                "command": to_command(entry.arguments.as_ref()),
+            })),
+    }
+}
+
+fn to_json_array(entries: &Entries, format: &Format) -> Result<serde_json::Value, Error> {
+    let array = entries
+        .into_iter()
+        .map(|entry| to_json(&entry, format))
+        .collect::<Result<Vec<_>, Error>>()?;
+
+    Ok(serde_json::Value::Array(array))
+}
+
+fn from_json(value: &serde_json::Value) -> Result<Entry, Error> {
+    unimplemented!()
+}
+
 pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries, Error> {
     // TODO: add validation
     let generic_entries: GenericEntries = serde_json::from_reader(reader)?;
@@ -19,10 +83,11 @@ pub fn save_into_writer(
     entries: Entries,
     format: &Format,
 ) -> Result<(), Error> {
-    // TODO: add validation
-    let generic_entries: GenericEntries = try_from_entries(entries, format)?;
+    let _ = validate_array(&entries)?;
+    let json = to_json_array(&entries, format)?;
+    let result = serde_json::to_writer_pretty(writer, &json)?;
 
-    serde_json::ser::to_writer_pretty(writer, &generic_entries).map_err(std::convert::Into::into)
+    Ok(result)
 }
 
 // TODO: kill this type and use raw `serde_json::Value` type!
