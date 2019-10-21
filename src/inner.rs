@@ -1,5 +1,5 @@
 use crate::api::*;
-use crate::error::Result;
+use crate::error::Error;
 
 use std::path;
 
@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use shellwords;
 
-pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries> {
+pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries, Error> {
     let generic_entries: GenericEntries = serde_json::from_reader(reader)?;
 
     try_into_entries(generic_entries)
@@ -17,7 +17,7 @@ pub fn save_into_writer(
     writer: impl std::io::Write,
     entries: Entries,
     format: &Format,
-) -> Result<()> {
+) -> Result<(), Error> {
     let generic_entries: GenericEntries = try_from_entries(entries, format)?;
 
     serde_json::ser::to_writer_pretty(writer, &generic_entries).map_err(std::convert::Into::into)
@@ -44,14 +44,14 @@ enum GenericEntry {
 
 type GenericEntries = Vec<GenericEntry>;
 
-fn try_from_entries(values: Entries, format: &Format) -> Result<GenericEntries> {
+fn try_from_entries(values: Entries, format: &Format) -> Result<GenericEntries, Error> {
     values
         .into_iter()
         .map(|entry| try_from_entry(entry, format))
-        .collect::<Result<Vec<_>>>()
+        .collect::<Result<Vec<_>, Error>>()
 }
 
-fn try_from_entry(value: Entry, format: &Format) -> Result<GenericEntry> {
+fn try_from_entry(value: Entry, format: &Format) -> Result<GenericEntry, Error> {
     let directory = path_to_string(value.directory.as_path())?;
     let file = path_to_string(value.file.as_path())?;
     let output = match value.output {
@@ -82,21 +82,21 @@ fn try_from_entry(value: Entry, format: &Format) -> Result<GenericEntry> {
     }
 }
 
-fn path_to_string(path: &path::Path) -> Result<String> {
+fn path_to_string(path: &path::Path) -> Result<String, Error> {
     match path.to_str() {
         Some(str) => Ok(str.to_string()),
         None => Err(format!("Failed to convert to string {:?}", path).into()),
     }
 }
 
-fn try_into_entries(values: GenericEntries) -> Result<Entries> {
+fn try_into_entries(values: GenericEntries) -> Result<Entries, Error> {
     values
         .into_iter()
         .map(try_into_entry)
-        .collect::<Result<Entries>>()
+        .collect::<Result<Entries, Error>>()
 }
 
-fn try_into_entry(value: GenericEntry) -> Result<Entry> {
+fn try_into_entry(value: GenericEntry) -> Result<Entry, Error> {
     match value {
         GenericEntry::ArrayEntry {
             directory,

@@ -1,13 +1,16 @@
-/// This crate provides support for reading and writing JSON compilation database files.
-///
-/// A compilation database is a set of records which describe the compilation of the
-/// source files in a given project. It describes the compiler invocation command to
-/// compile a source module to an object file.
-///
-/// This database can have many forms. One well known and supported format is the JSON
-/// compilation database, which is a simple JSON file having the list of compilation
-/// as an array. The definition of the JSON compilation database files is done in the
-/// LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
+/*!
+This crate provides support for reading and writing JSON compilation database files.
+
+A compilation database is a set of records which describe the compilation of the
+source files in a given project. It describes the compiler invocation command to
+compile a source module to an object file.
+
+This database can have many forms. One well known and supported format is the JSON
+compilation database, which is a simple JSON file having the list of compilation
+as an array. The definition of the JSON compilation database files is done in the
+LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
+*/
+
 mod inner;
 
 pub use api::*;
@@ -62,8 +65,6 @@ mod error {
             Error::SemanticError(message)
         }
     }
-
-    pub type Result<T> = std::result::Result<T, Error>;
 }
 
 mod api {
@@ -102,17 +103,21 @@ mod api {
 
     pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
 
-    pub fn load_from_file(file: &path::Path) -> Result<Entries> {
+    pub fn load_from_file(file: &path::Path) -> Result<Entries, Error> {
         let reader = fs::OpenOptions::new().read(true).open(file)?;
 
         load_from_reader(reader)
     }
 
-    pub fn load_from_reader(reader: impl io::Read) -> Result<Entries> {
+    pub fn load_from_reader(reader: impl io::Read) -> Result<Entries, Error> {
         inner::load_from_reader(reader)
     }
 
-    pub fn save_into_file(file: &path::Path, entries: Entries, format: &Format) -> Result<()> {
+    pub fn save_into_file(
+        file: &path::Path,
+        entries: Entries,
+        format: &Format,
+    ) -> Result<(), Error> {
         let writer = fs::OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -126,7 +131,7 @@ mod api {
         writer: impl io::Write,
         entries: Entries,
         format: &Format,
-    ) -> Result<()> {
+    ) -> Result<(), Error> {
         inner::save_into_writer(writer, entries, format)
     }
 }

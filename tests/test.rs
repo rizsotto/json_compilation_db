@@ -41,7 +41,7 @@ mod failures {
     }
 
     #[test]
-    fn load_non_json_content() -> Result<()> {
+    fn load_non_json_content() -> Result<(), Error> {
         let directory = fixtures::create_test_dir()?;
         let file = fixtures::create_file_with_content(&directory, br#"this is not json"#)?;
 
@@ -53,7 +53,7 @@ mod failures {
     }
 
     #[test]
-    fn load_not_expected_json_content() -> Result<()> {
+    fn load_not_expected_json_content() -> Result<(), Error> {
         let content = json!({ "file": "string" });
         let directory = fixtures::create_test_dir()?;
         let file = fixtures::create_file_with_json_content(&directory, content)?;
@@ -66,7 +66,7 @@ mod failures {
     }
 
     #[test]
-    fn load_on_semantic_problem() -> Result<()> {
+    fn load_on_semantic_problem() -> Result<(), Error> {
         let content = json!([
             {
                 "directory": " ",
@@ -108,7 +108,7 @@ mod success {
         use super::*;
 
         #[test]
-        fn load_empty_array() -> Result<()> {
+        fn load_empty_array() -> Result<(), Error> {
             let content = json!([]);
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
@@ -175,7 +175,7 @@ mod success {
         }
 
         #[test]
-        fn load_content_with_string_command_syntax() -> Result<()> {
+        fn load_content_with_string_command_syntax() -> Result<(), Error> {
             let content = expected_with_string_syntax();
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
@@ -189,7 +189,7 @@ mod success {
         }
 
         #[test]
-        fn load_content_with_array_command_syntax() -> Result<()> {
+        fn load_content_with_array_command_syntax() -> Result<(), Error> {
             let content = expected_with_array_syntax();
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
@@ -203,7 +203,7 @@ mod success {
         }
 
         #[test]
-        fn save_with_string_command_syntax() -> Result<()> {
+        fn save_with_string_command_syntax() -> Result<(), Error> {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file(&directory);
             let input = expected_values();
@@ -221,7 +221,7 @@ mod success {
         }
 
         #[test]
-        fn save_with_array_command_syntax() -> Result<()> {
+        fn save_with_array_command_syntax() -> Result<(), Error> {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file(&directory);
             let input = expected_values();
@@ -306,7 +306,7 @@ mod success {
         }
 
         #[test]
-        fn load_content_with_string_command_syntax() -> Result<()> {
+        fn load_content_with_string_command_syntax() -> Result<(), Error> {
             let content = expected_with_string_syntax();
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
@@ -320,7 +320,7 @@ mod success {
         }
 
         #[test]
-        fn load_content_with_array_command_syntax() -> Result<()> {
+        fn load_content_with_array_command_syntax() -> Result<(), Error> {
             let content = expected_with_array_syntax();
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
@@ -334,7 +334,7 @@ mod success {
         }
 
         #[test]
-        fn save_with_string_command_syntax() -> Result<()> {
+        fn save_with_string_command_syntax() -> Result<(), Error> {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file(&directory);
             let input = expected_values();
@@ -352,7 +352,7 @@ mod success {
         }
 
         #[test]
-        fn save_with_array_command_syntax() -> Result<()> {
+        fn save_with_array_command_syntax() -> Result<(), Error> {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file(&directory);
             let input = expected_values();
@@ -383,7 +383,7 @@ mod fixtures {
         ($($x:expr),*) => (vec![$($x.to_string()),*]);
     }
 
-    pub fn create_test_dir() -> Result<tempfile::TempDir> {
+    pub fn create_test_dir() -> Result<tempfile::TempDir, Error> {
         let directory = tempfile::Builder::new()
             .prefix("json_cdb_test-")
             .rand_bytes(12)
@@ -402,7 +402,7 @@ mod fixtures {
     pub fn create_file_with_content(
         directory: &tempfile::TempDir,
         content: &[u8],
-    ) -> Result<path::PathBuf> {
+    ) -> Result<path::PathBuf, Error> {
         let path = create_file(directory);
         let mut file = fs::OpenOptions::new()
             .write(true)
@@ -417,7 +417,7 @@ mod fixtures {
     pub fn create_file_with_json_content(
         directory: &tempfile::TempDir,
         content: Value,
-    ) -> Result<path::PathBuf> {
+    ) -> Result<path::PathBuf, Error> {
         let path = create_file(directory);
         let file = fs::OpenOptions::new()
             .write(true)
@@ -428,7 +428,7 @@ mod fixtures {
         Ok(path)
     }
 
-    pub fn read_json_from(path: &path::Path) -> Result<Value> {
+    pub fn read_json_from(path: &path::Path) -> Result<Value, Error> {
         let file = fs::OpenOptions::new().read(true).open(path)?;
         let content: Value = serde_json::from_reader(file)?;
         Ok(content)
