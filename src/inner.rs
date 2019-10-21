@@ -8,6 +8,7 @@ use serde_json;
 use shellwords;
 
 pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries, Error> {
+    // TODO: add validation
     let generic_entries: GenericEntries = serde_json::from_reader(reader)?;
 
     try_into_entries(generic_entries)
@@ -18,10 +19,13 @@ pub fn save_into_writer(
     entries: Entries,
     format: &Format,
 ) -> Result<(), Error> {
+    // TODO: add validation
     let generic_entries: GenericEntries = try_from_entries(entries, format)?;
 
     serde_json::ser::to_writer_pretty(writer, &generic_entries).map_err(std::convert::Into::into)
 }
+
+// TODO: kill this type and use raw `serde_json::Value` type!
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]

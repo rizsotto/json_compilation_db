@@ -4,6 +4,7 @@ use serde_json::json;
 mod failures {
     use super::*;
 
+    // TODO: check how meaningful the error string is.
     macro_rules! assert_io_error {
         ($x:expr) => {
             match $x {
@@ -13,6 +14,7 @@ mod failures {
         };
     }
 
+    // TODO: check how meaningful the error string is.
     macro_rules! assert_syntax_error {
         ($x:expr) => {
             match $x {
@@ -22,6 +24,7 @@ mod failures {
         };
     }
 
+    // TODO: check how meaningful the error string is.
     macro_rules! assert_semantic_error {
         ($x:expr) => {
             match $x {
@@ -52,6 +55,7 @@ mod failures {
         Ok(())
     }
 
+    // TODO: this should be a semantic error.
     #[test]
     fn load_not_expected_json_content() -> Result<(), Error> {
         let content = json!({ "file": "string" });
