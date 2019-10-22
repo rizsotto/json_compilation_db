@@ -24,16 +24,6 @@ mod failures {
         };
     }
 
-    // TODO: check how meaningful the error string is.
-    macro_rules! assert_semantic_error {
-        ($x:expr) => {
-            match $x {
-                Err(Error::SemanticError(_)) => assert!(true),
-                _ => assert!(false, "shout be semantic error"),
-            }
-        };
-    }
-
     #[test]
     fn load_not_existing_file() {
         let file = std::path::Path::new("/not/existing/path");
@@ -63,7 +53,7 @@ mod failures {
 
         let result = load_from_file(file.as_path());
 
-        assert_semantic_error!(&result);
+        assert_syntax_error!(&result);
 
         Ok(())
     }
@@ -82,7 +72,7 @@ mod failures {
 
         let result = load_from_file(file.as_path());
 
-        assert_semantic_error!(result);
+        assert_syntax_error!(result);
 
         Ok(())
     }
