@@ -55,7 +55,6 @@ mod failures {
         Ok(())
     }
 
-    // TODO: this should be a semantic error.
     #[test]
     fn load_not_expected_json_content() -> Result<(), Error> {
         let content = json!({ "file": "string" });
@@ -64,7 +63,7 @@ mod failures {
 
         let result = load_from_file(file.as_path());
 
-        assert_syntax_error!(&result);
+        assert_semantic_error!(&result);
 
         Ok(())
     }

@@ -1,19 +1,24 @@
 use crate::api::*;
-use crate::error::Error;
+use crate::error::{Error, Error::SemanticError};
 
 use std::path;
 
-use serde::{Deserialize, Serialize};
-use serde_json;
+use serde_json::{json, Value};
 use shellwords;
 
 fn validate(entry: &Entry) -> Result<(), Error> {
-    // TODO: add validation
+    if entry.arguments.is_empty() {
+        return Err(SemanticError("".to_string()))
+    }
+
     Ok(())
 }
 
 fn validate_array(entries: &Entries) -> Result<(), Error> {
-    // TODO: add validation
+    let _ = entries.iter()
+        .map(validate)
+        .collect::<Result<Vec<()>, Error>>()?;
+
     Ok(())
 }
 
@@ -27,30 +32,36 @@ fn to_command(arguments: &[String]) -> String {
     )
 }
 
+fn to_arguments(command: String) -> Result<Vec<String>, Error> {
+    // TODO: fix error message
+    shellwords::split(command.as_str())
+        .map_err(|_| SemanticError("Mismatched quotes".to_string()))
+}
+
 fn to_json(entry: &Entry, format: &Format) -> Result<serde_json::Value, Error> {
     match (format.command_as_array, entry.output.is_some()) {
         (true,  true)  =>
-            Ok(serde_json::json!({
+            Ok(json!({
                 "directory": entry.directory,
                 "file": entry.file,
                 "arguments": entry.arguments,
                 "output": entry.output,
             })),
         (true,  false) =>
-            Ok(serde_json::json!({
+            Ok(json!({
                 "directory": entry.directory,
                 "file": entry.file,
                 "arguments": entry.arguments,
             })),
         (false, true)  =>
-            Ok(serde_json::json!({
+            Ok(json!({
                 "directory": entry.directory,
                 "file": entry.file,
                 "command": to_command(entry.arguments.as_ref()),
                 "output": entry.output,
             })),
         (false, false) =>
-            Ok(serde_json::json!({
+            Ok(json!({
                 "directory": entry.directory,
                 "file": entry.file,
                 "command": to_command(entry.arguments.as_ref()),
@@ -64,18 +75,80 @@ fn to_json_array(entries: &Entries, format: &Format) -> Result<serde_json::Value
         .map(|entry| to_json(&entry, format))
         .collect::<Result<Vec<_>, Error>>()?;
 
-    Ok(serde_json::Value::Array(array))
+    Ok(Value::Array(array))
 }
 
-fn from_json(value: &serde_json::Value) -> Result<Entry, Error> {
-    unimplemented!()
+fn as_path(value: &Value) -> Result<path::PathBuf, Error> {
+    // TODO: fix error message
+    match value {
+        Value::String(content) => Ok(path::PathBuf::from(content)),
+        _ => Err(SemanticError(format!("Entry field expected to be string."))),
+    }
+}
+
+fn as_string(value: &Value) -> Result<String, Error> {
+    // TODO: fix error message
+    match value {
+        Value::String(content) => Ok(content.clone()),
+        _ => Err(SemanticError("Entry field '' has to contains strings only".to_string()))
+    }
+}
+
+fn as_array(value: &Value) -> Result<Vec<String>, Error> {
+    // TODO: fix error message
+    match value {
+        Value::Array(values) => {
+            values.iter()
+                .map(as_string)
+                .collect()
+        },
+        _ => Err(SemanticError("Entry field 'arguments' has to be array of strings.".to_string())),
+    }
+}
+
+fn from_json(value: &Value) -> Result<Entry, Error> {
+    match value {
+        Value::Object(entry) => {
+            let directory: path::PathBuf = entry.get("directory")
+                .ok_or(SemanticError("Entry field 'command' is required".to_string()))
+                .and_then(as_path)?;
+            let file: path::PathBuf = entry.get("file")
+                .ok_or(SemanticError("Entry field 'file' is required.".to_string()))
+                .and_then(as_path)?;
+            let output: Option<path::PathBuf> = entry.get("output")
+                .map(as_path)
+                .transpose()?;
+            let arguments: Vec<String> = entry.get("arguments")
+                .ok_or(SemanticError("".to_string()))
+                .and_then(as_array)
+                .or_else(|_| entry.get("command")
+                    .ok_or(SemanticError("".to_string()))
+                    .and_then(as_string)
+                    .and_then(to_arguments))?;
+
+            Ok(Entry { file, arguments, directory, output })
+        },
+        _ => Err(SemanticError("Compilation database entry expected as JSON object".to_string()))
+    }
+}
+
+fn from_json_array(value: &Value) -> Result<Entries, Error> {
+    match value {
+        Value::Array(values) => {
+            values.iter()
+                .map(from_json)
+                .collect()
+        },
+        _ => Err(SemanticError("Compilation database content expected as JSON array".to_string()))
+    }
 }
 
 pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries, Error> {
-    // TODO: add validation
-    let generic_entries: GenericEntries = serde_json::from_reader(reader)?;
+    let values: Value = serde_json::from_reader(reader)?;
+    let entries = from_json_array(&values)?;
+    let _ = validate_array(&entries)?;
 
-    try_into_entries(generic_entries)
+    Ok(entries)
 }
 
 pub fn save_into_writer(
@@ -88,119 +161,4 @@ pub fn save_into_writer(
     let result = serde_json::to_writer_pretty(writer, &json)?;
 
     Ok(result)
-}
-
-// TODO: kill this type and use raw `serde_json::Value` type!
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-enum GenericEntry {
-    StringEntry {
-        directory: String,
-        file: String,
-        command: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        output: Option<String>,
-    },
-    ArrayEntry {
-        directory: String,
-        file: String,
-        arguments: Vec<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        output: Option<String>,
-    },
-}
-
-type GenericEntries = Vec<GenericEntry>;
-
-fn try_from_entries(values: Entries, format: &Format) -> Result<GenericEntries, Error> {
-    values
-        .into_iter()
-        .map(|entry| try_from_entry(entry, format))
-        .collect::<Result<Vec<_>, Error>>()
-}
-
-fn try_from_entry(value: Entry, format: &Format) -> Result<GenericEntry, Error> {
-    let directory = path_to_string(value.directory.as_path())?;
-    let file = path_to_string(value.file.as_path())?;
-    let output = match value.output {
-        Some(ref path) => path_to_string(path).map(Option::Some),
-        None => Ok(None),
-    }?;
-    if format.command_as_array {
-        Ok(GenericEntry::ArrayEntry {
-            directory,
-            file,
-            arguments: value.arguments.clone(),
-            output,
-        })
-    } else {
-        Ok(GenericEntry::StringEntry {
-            directory,
-            file,
-            command: shellwords::join(
-                value
-                    .arguments
-                    .iter()
-                    .map(String::as_str)
-                    .collect::<Vec<_>>()
-                    .as_ref(),
-            ),
-            output,
-        })
-    }
-}
-
-fn path_to_string(path: &path::Path) -> Result<String, Error> {
-    match path.to_str() {
-        Some(str) => Ok(str.to_string()),
-        None => Err(format!("Failed to convert to string {:?}", path).into()),
-    }
-}
-
-fn try_into_entries(values: GenericEntries) -> Result<Entries, Error> {
-    values
-        .into_iter()
-        .map(try_into_entry)
-        .collect::<Result<Entries, Error>>()
-}
-
-fn try_into_entry(value: GenericEntry) -> Result<Entry, Error> {
-    match value {
-        GenericEntry::ArrayEntry {
-            directory,
-            file,
-            arguments,
-            output,
-        } => {
-            let directory_path = path::PathBuf::from(directory);
-            let file_path = path::PathBuf::from(file);
-            let output_path = output.map(path::PathBuf::from);
-            Ok(Entry {
-                directory: directory_path,
-                file: file_path,
-                arguments: arguments.clone(),
-                output: output_path,
-            })
-        }
-        GenericEntry::StringEntry {
-            directory,
-            file,
-            command,
-            output,
-        } => match shellwords::split(command.as_str()) {
-            Ok(arguments) => {
-                let directory_path = path::PathBuf::from(directory);
-                let file_path = path::PathBuf::from(file);
-                let output_path = output.clone().map(path::PathBuf::from);
-                Ok(Entry {
-                    directory: directory_path,
-                    file: file_path,
-                    arguments: arguments,
-                    output: output_path,
-                })
-            }
-            Err(_) => Err(format!("Quotes are mismatch in {:?}", command).into()),
-        },
-    }
 }
