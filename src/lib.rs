@@ -29,7 +29,7 @@ mod error {
         /// Represents JSON read or write failure.
         SyntaxError(serde_json::Error),
         /// Represents semantic failure during procession of the file content.
-        SemanticError(String),
+        SemanticError(&'static str),
     }
 
     impl fmt::Display for Error {
@@ -61,12 +61,6 @@ mod error {
     impl From<serde_json::Error> for Error {
         fn from(cause: serde_json::Error) -> Self {
             Error::SyntaxError(cause)
-        }
-    }
-
-    impl From<String> for Error {
-        fn from(message: String) -> Self {
-            Error::SemanticError(message)
         }
     }
 }

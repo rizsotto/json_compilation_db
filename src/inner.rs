@@ -8,7 +8,7 @@ use shellwords;
 
 fn validate(entry: &Entry) -> Result<(), Error> {
     if entry.arguments.is_empty() {
-        return Err(SemanticError("".to_string()))
+        return Err(SemanticError("Field `argument` can't be empty array."))
     }
 
     Ok(())
@@ -33,9 +33,8 @@ fn to_command(arguments: &[String]) -> String {
 }
 
 fn to_arguments(command: String) -> Result<Vec<String>, Error> {
-    // TODO: fix error message
     shellwords::split(command.as_str())
-        .map_err(|_| SemanticError("Mismatched quotes".to_string()))
+        .map_err(|_| SemanticError("Mismatched quotes in `command` field."))
 }
 
 fn to_json(entry: &Entry, format: &Format) -> Result<serde_json::Value, Error> {
@@ -82,7 +81,7 @@ fn as_path(value: &Value) -> Result<path::PathBuf, Error> {
     // TODO: fix error message
     match value {
         Value::String(content) => Ok(path::PathBuf::from(content)),
-        _ => Err(SemanticError(format!("Entry field expected to be string."))),
+        _ => Err(SemanticError("Entry field expected to be string.")),
     }
 }
 
@@ -90,7 +89,7 @@ fn as_string(value: &Value) -> Result<String, Error> {
     // TODO: fix error message
     match value {
         Value::String(content) => Ok(content.clone()),
-        _ => Err(SemanticError("Entry field '' has to contains strings only".to_string()))
+        _ => Err(SemanticError("Entry field expected to be string."))
     }
 }
 
@@ -102,7 +101,7 @@ fn as_array(value: &Value) -> Result<Vec<String>, Error> {
                 .map(as_string)
                 .collect()
         },
-        _ => Err(SemanticError("Entry field 'arguments' has to be array of strings.".to_string())),
+        _ => Err(SemanticError("Entry field `arguments` expected to be array of strings.")),
     }
 }
 
@@ -110,25 +109,24 @@ fn from_json(value: &Value) -> Result<Entry, Error> {
     match value {
         Value::Object(entry) => {
             let directory: path::PathBuf = entry.get("directory")
-                .ok_or(SemanticError("Entry field 'command' is required".to_string()))
+                .ok_or(SemanticError("Entry field `directory` is required"))
                 .and_then(as_path)?;
             let file: path::PathBuf = entry.get("file")
-                .ok_or(SemanticError("Entry field 'file' is required.".to_string()))
+                .ok_or(SemanticError("Entry field `file` is required."))
                 .and_then(as_path)?;
             let output: Option<path::PathBuf> = entry.get("output")
                 .map(as_path)
                 .transpose()?;
             let arguments: Vec<String> = entry.get("arguments")
-                .ok_or(SemanticError("".to_string()))
-                .and_then(as_array)
-                .or_else(|_| entry.get("command")
-                    .ok_or(SemanticError("".to_string()))
+                .map_or_else(|| entry.get("command")
+                    .ok_or(SemanticError("Either `command` or `arguments` is required."))
                     .and_then(as_string)
-                    .and_then(to_arguments))?;
+                    .and_then(to_arguments),
+                             as_array)?;
 
             Ok(Entry { file, arguments, directory, output })
         },
-        _ => Err(SemanticError("Compilation database entry expected as JSON object".to_string()))
+        _ => Err(SemanticError("Compilation database entry expected to be JSON object"))
     }
 }
 
@@ -139,7 +137,7 @@ fn from_json_array(value: &Value) -> Result<Entries, Error> {
                 .map(from_json)
                 .collect()
         },
-        _ => Err(SemanticError("Compilation database content expected as JSON array".to_string()))
+        _ => Err(SemanticError("Compilation database content expected to be JSON array"))
     }
 }
 
