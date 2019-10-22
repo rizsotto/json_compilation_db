@@ -50,38 +50,19 @@ impl<'a> Serialize for FormattedEntry<'a> {
             )
         }
 
-        match (self.format.command_as_array, self.entry.output.is_some()) {
-            (true, true) => {
-                let mut state = serializer.serialize_struct("Entry", 4)?;
-                state.serialize_field("directory", &self.entry.directory)?;
-                state.serialize_field("file", &self.entry.file)?;
-                state.serialize_field("arguments", &self.entry.arguments)?;
-                state.serialize_field("output", &self.entry.output)?;
-                state.end()
-            }
-            (true, false) => {
-                let mut state = serializer.serialize_struct("Entry", 3)?;
-                state.serialize_field("directory", &self.entry.directory)?;
-                state.serialize_field("file", &self.entry.file)?;
-                state.serialize_field("arguments", &self.entry.arguments)?;
-                state.end()
-            }
-            (false, true) => {
-                let mut state = serializer.serialize_struct("Entry", 4)?;
-                state.serialize_field("directory", &self.entry.directory)?;
-                state.serialize_field("file", &self.entry.file)?;
-                state.serialize_field("command", &to_command(&self.entry.arguments))?;
-                state.serialize_field("output", &self.entry.output)?;
-                state.end()
-            }
-            (false, false) => {
-                let mut state = serializer.serialize_struct("Entry", 3)?;
-                state.serialize_field("directory", &self.entry.directory)?;
-                state.serialize_field("file", &self.entry.file)?;
-                state.serialize_field("command", &to_command(&self.entry.arguments))?;
-                state.end()
-            }
+        let size = if self.entry.output.is_some() { 4 } else { 3 };
+        let mut state = serializer.serialize_struct("Entry", size)?;
+        state.serialize_field("directory", &self.entry.directory)?;
+        state.serialize_field("file", &self.entry.file)?;
+        if self.format.command_as_array {
+            state.serialize_field("arguments", &self.entry.arguments)?;
+        } else {
+            state.serialize_field("command", &to_command(&self.entry.arguments))?;
         }
+        if self.entry.output.is_some() {
+            state.serialize_field("output", &self.entry.output)?;
+        }
+        state.end()
     }
 }
 
@@ -97,8 +78,7 @@ impl<'de> Deserialize<'de> for Entry {
             Arguments,
             Output,
         };
-        const FIELDS: &[&str] =
-            &["directory", "file", "command", "arguments", "output"];
+        const FIELDS: &[&str] = &["directory", "file", "command", "arguments", "output"];
 
         impl<'de> Deserialize<'de> for Field {
             fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
