@@ -1,5 +1,4 @@
 use crate::api::*;
-use crate::error::{Error, Error::SemanticError};
 
 use std::fmt;
 use std::path;
@@ -197,24 +196,23 @@ impl<'de> Deserialize<'de> for Entry {
     }
 }
 
-fn validate(entries: &[Entry]) -> Result<(), Error> {
-    let _ = entries
-        .iter()
-        .map(|entry| {
-            if entry.arguments.is_empty() {
-                return Err(SemanticError("Field `argument` can't be empty array."));
-            }
+//fn validate(entries: &[Entry]) -> Result<(), Error> {
+//    let _ = entries
+//        .iter()
+//        .map(|entry| {
+//            if entry.arguments.is_empty() {
+//                return Err(SemanticError("Field `argument` can't be empty array."));
+//            }
+//
+//            Ok(())
+//        })
+//        .collect::<Result<Vec<()>, Error>>()?;
+//
+//    Ok(())
+//}
 
-            Ok(())
-        })
-        .collect::<Result<Vec<()>, Error>>()?;
-
-    Ok(())
-}
-
-pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries, Error> {
+pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries, serde_json::Error> {
     let entries: Entries = serde_json::from_reader(reader)?;
-    validate(&entries)?;
 
     Ok(entries)
 }
@@ -223,9 +221,7 @@ pub fn save_into_writer(
     writer: impl std::io::Write,
     entries: Entries,
     format: &Format,
-) -> Result<(), Error> {
-    validate(&entries)?;
-
+) -> Result<(), serde_json::Error> {
     let fe = FormattedEntries {
         entries: &entries,
         format,

@@ -124,11 +124,13 @@ mod api {
     pub fn load_from_file(file: &path::Path) -> Result<Entries, Error> {
         let reader = fs::OpenOptions::new().read(true).open(file)?;
 
-        load_from_reader(reader)
+        let result = load_from_reader(reader)?;
+
+        Ok(result)
     }
 
     /// Load the content of the given stream and parse it as a compilation database.
-    pub fn load_from_reader(reader: impl io::Read) -> Result<Entries, Error> {
+    pub fn load_from_reader(reader: impl io::Read) -> Result<Entries, serde_json::Error> {
         inner::load_from_reader(reader)
     }
 
@@ -144,7 +146,9 @@ mod api {
             .create(true)
             .open(file)?;
 
-        save_into_writer(writer, entries, format)
+        let result = save_into_writer(writer, entries, format)?;
+
+        Ok(result)
     }
 
     /// Persists the entries into the given stream with the given format.
@@ -152,7 +156,7 @@ mod api {
         writer: impl io::Write,
         entries: Entries,
         format: &Format,
-    ) -> Result<(), Error> {
+    ) -> Result<(), serde_json::Error> {
         inner::save_into_writer(writer, entries, format)
     }
 }
