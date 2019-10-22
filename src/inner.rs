@@ -97,7 +97,7 @@ impl<'de> Deserialize<'de> for Entry {
             Arguments,
             Output,
         };
-        const FIELDS: &'static [&'static str] =
+        const FIELDS: &[&str] =
             &["directory", "file", "command", "arguments", "output"];
 
         impl<'de> Deserialize<'de> for Field {
@@ -202,7 +202,7 @@ impl<'de> Deserialize<'de> for Entry {
                                 })
                             })
                     },
-                    |args| Ok(args),
+                    Ok,
                 )?;
                 Ok(Entry {
                     directory,
@@ -217,7 +217,7 @@ impl<'de> Deserialize<'de> for Entry {
     }
 }
 
-fn validate(entries: &Entries) -> Result<(), Error> {
+fn validate(entries: &[Entry]) -> Result<(), Error> {
     let _ = entries
         .iter()
         .map(|entry| {
