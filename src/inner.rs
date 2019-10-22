@@ -3,8 +3,74 @@ use crate::error::{Error, Error::SemanticError};
 
 use std::path;
 
-use serde_json::{json, Value};
+use serde_json::Value;
 use shellwords;
+use serde::ser::{Serialize, Serializer, SerializeStruct, SerializeSeq};
+
+struct FormattedEntries <'a> {
+    entries: &'a Entries,
+    format: &'a Format,
+}
+
+struct FormattedEntry <'a> {
+    entry: &'a Entry,
+    format: &'a Format,
+}
+
+impl<'a> Serialize for FormattedEntries <'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.entries.len()))?;
+        for e in self.entries {
+            let fe = FormattedEntry { entry: e, format: self.format };
+            seq.serialize_element(&fe)?;
+        }
+        seq.end()
+    }
+}
+
+impl<'a> Serialize for FormattedEntry <'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        match (self.format.command_as_array, self.entry.output.is_some()) {
+            (true,  true)  => {
+                let mut state = serializer.serialize_struct("Entry", 4)?;
+                state.serialize_field("directory", &self.entry.directory)?;
+                state.serialize_field("file", &self.entry.file)?;
+                state.serialize_field("arguments", &self.entry.arguments)?;
+                state.serialize_field("output", &self.entry.output)?;
+                state.end()
+            },
+            (true,  false)  => {
+                let mut state = serializer.serialize_struct("Entry", 3)?;
+                state.serialize_field("directory", &self.entry.directory)?;
+                state.serialize_field("file", &self.entry.file)?;
+                state.serialize_field("arguments", &self.entry.arguments)?;
+                state.end()
+            },
+            (false, true)  => {
+                let mut state = serializer.serialize_struct("Entry", 4)?;
+                state.serialize_field("directory", &self.entry.directory)?;
+                state.serialize_field("file", &self.entry.file)?;
+                state.serialize_field("command", &to_command(&self.entry.arguments))?;
+                state.serialize_field("output", &self.entry.output)?;
+                state.end()
+            },
+            (false, false)  => {
+                let mut state = serializer.serialize_struct("Entry", 3)?;
+                state.serialize_field("directory", &self.entry.directory)?;
+                state.serialize_field("file", &self.entry.file)?;
+                state.serialize_field("command", &to_command(&self.entry.arguments))?;
+                state.end()
+            },
+        }
+    }
+}
+
 
 fn validate(entry: &Entry) -> Result<(), Error> {
     if entry.arguments.is_empty() {
@@ -35,46 +101,6 @@ fn to_command(arguments: &[String]) -> String {
 fn to_arguments(command: String) -> Result<Vec<String>, Error> {
     shellwords::split(command.as_str())
         .map_err(|_| SemanticError("Mismatched quotes in `command` field."))
-}
-
-fn to_json(entry: &Entry, format: &Format) -> Result<serde_json::Value, Error> {
-    match (format.command_as_array, entry.output.is_some()) {
-        (true,  true)  =>
-            Ok(json!({
-                "directory": entry.directory,
-                "file": entry.file,
-                "arguments": entry.arguments,
-                "output": entry.output,
-            })),
-        (true,  false) =>
-            Ok(json!({
-                "directory": entry.directory,
-                "file": entry.file,
-                "arguments": entry.arguments,
-            })),
-        (false, true)  =>
-            Ok(json!({
-                "directory": entry.directory,
-                "file": entry.file,
-                "command": to_command(entry.arguments.as_ref()),
-                "output": entry.output,
-            })),
-        (false, false) =>
-            Ok(json!({
-                "directory": entry.directory,
-                "file": entry.file,
-                "command": to_command(entry.arguments.as_ref()),
-            })),
-    }
-}
-
-fn to_json_array(entries: &Entries, format: &Format) -> Result<serde_json::Value, Error> {
-    let array = entries
-        .into_iter()
-        .map(|entry| to_json(&entry, format))
-        .collect::<Result<Vec<_>, Error>>()?;
-
-    Ok(Value::Array(array))
 }
 
 fn as_path(value: &Value) -> Result<path::PathBuf, Error> {
@@ -155,8 +181,8 @@ pub fn save_into_writer(
     format: &Format,
 ) -> Result<(), Error> {
     let _ = validate_array(&entries)?;
-    let json = to_json_array(&entries, format)?;
-    let result = serde_json::to_writer_pretty(writer, &json)?;
+    let fe = FormattedEntries { entries: &entries, format };
+    let result = serde_json::to_writer_pretty(writer, &fe)?;
 
     Ok(result)
 }
