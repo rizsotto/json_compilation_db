@@ -11,7 +11,8 @@ as an array. The definition of the JSON compilation database files is done in th
 LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
 */
 
-mod inner;
+mod type_ser;
+mod type_de;
 
 pub use api::*;
 pub use error::*;
@@ -67,7 +68,7 @@ mod error {
 
 mod api {
     use super::error::*;
-    use super::inner;
+    use super::type_ser;
 
     use std::fs;
     use std::io;
@@ -131,7 +132,9 @@ mod api {
 
     /// Load the content of the given stream and parse it as a compilation database.
     pub fn load_from_reader(reader: impl io::Read) -> Result<Entries, serde_json::Error> {
-        inner::load_from_reader(reader)
+        let entries: Entries = serde_json::from_reader(reader)?;
+
+        Ok(entries)
     }
 
     /// Persists the entries into the given file name with the given format.
@@ -157,6 +160,12 @@ mod api {
         entries: Entries,
         format: &Format,
     ) -> Result<(), serde_json::Error> {
-        inner::save_into_writer(writer, entries, format)
+        let fe = type_ser::FormattedEntries {
+            entries: &entries,
+            format,
+        };
+        serde_json::to_writer_pretty(writer, &fe)?;
+
+        Ok(())
     }
 }

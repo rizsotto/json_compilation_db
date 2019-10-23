@@ -4,66 +4,7 @@ use std::fmt;
 use std::path;
 
 use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
-use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
 use shellwords;
-
-struct FormattedEntries<'a> {
-    entries: &'a Entries,
-    format: &'a Format,
-}
-
-struct FormattedEntry<'a> {
-    entry: &'a Entry,
-    format: &'a Format,
-}
-
-impl<'a> Serialize for FormattedEntries<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq = serializer.serialize_seq(Some(self.entries.len()))?;
-        for e in self.entries {
-            let fe = FormattedEntry {
-                entry: e,
-                format: self.format,
-            };
-            seq.serialize_element(&fe)?;
-        }
-        seq.end()
-    }
-}
-
-impl<'a> Serialize for FormattedEntry<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        fn to_command(arguments: &[String]) -> String {
-            shellwords::join(
-                arguments
-                    .iter()
-                    .map(String::as_str)
-                    .collect::<Vec<_>>()
-                    .as_ref(),
-            )
-        }
-
-        let size = if self.entry.output.is_some() { 4 } else { 3 };
-        let mut state = serializer.serialize_struct("Entry", size)?;
-        state.serialize_field("directory", &self.entry.directory)?;
-        state.serialize_field("file", &self.entry.file)?;
-        if self.format.command_as_array {
-            state.serialize_field("arguments", &self.entry.arguments)?;
-        } else {
-            state.serialize_field("command", &to_command(&self.entry.arguments))?;
-        }
-        if self.entry.output.is_some() {
-            state.serialize_field("output", &self.entry.output)?;
-        }
-        state.end()
-    }
-}
 
 impl<'de> Deserialize<'de> for Entry {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -194,39 +135,4 @@ impl<'de> Deserialize<'de> for Entry {
 
         deserializer.deserialize_struct("Entry", FIELDS, EntryVisitor)
     }
-}
-
-//fn validate(entries: &[Entry]) -> Result<(), Error> {
-//    let _ = entries
-//        .iter()
-//        .map(|entry| {
-//            if entry.arguments.is_empty() {
-//                return Err(SemanticError("Field `argument` can't be empty array."));
-//            }
-//
-//            Ok(())
-//        })
-//        .collect::<Result<Vec<()>, Error>>()?;
-//
-//    Ok(())
-//}
-
-pub fn load_from_reader(reader: impl std::io::Read) -> Result<Entries, serde_json::Error> {
-    let entries: Entries = serde_json::from_reader(reader)?;
-
-    Ok(entries)
-}
-
-pub fn save_into_writer(
-    writer: impl std::io::Write,
-    entries: Entries,
-    format: &Format,
-) -> Result<(), serde_json::Error> {
-    let fe = FormattedEntries {
-        entries: &entries,
-        format,
-    };
-    serde_json::to_writer_pretty(writer, &fe)?;
-
-    Ok(())
 }
