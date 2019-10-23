@@ -28,7 +28,7 @@ mod failures {
     fn load_not_existing_file() {
         let file = std::path::Path::new("/not/existing/path");
 
-        let result = load_from_file(file);
+        let result = from_file(file);
 
         assert_io_error!(&result);
     }
@@ -38,7 +38,7 @@ mod failures {
         let directory = fixtures::create_test_dir()?;
         let file = fixtures::create_file_with_content(&directory, br#"this is not json"#)?;
 
-        let result = load_from_file(file.as_path());
+        let result = from_file(file.as_path());
 
         assert_syntax_error!(&result);
 
@@ -51,7 +51,7 @@ mod failures {
         let directory = fixtures::create_test_dir()?;
         let file = fixtures::create_file_with_json_content(&directory, content)?;
 
-        let result = load_from_file(file.as_path());
+        let result = from_file(file.as_path());
 
         assert_syntax_error!(&result);
 
@@ -70,7 +70,7 @@ mod failures {
         let directory = fixtures::create_test_dir()?;
         let file = fixtures::create_file_with_json_content(&directory, content)?;
 
-        let result = load_from_file(file.as_path());
+        let result = from_file(file.as_path());
 
         assert_syntax_error!(result);
 
@@ -88,7 +88,7 @@ mod failures {
         }];
         let format = Format::default();
 
-        let result = save_into_file(file, input, &format);
+        let result = to_file(&input, &format, file);
 
         assert_io_error!(&result);
     }
@@ -106,7 +106,7 @@ mod success {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
 
-            let entries = load_from_file(file.as_path())?;
+            let entries = from_file(file.as_path())?;
 
             let expected = Entries::new();
             assert_eq!(expected, entries);
@@ -173,7 +173,7 @@ mod success {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
 
-            let entries = load_from_file(file.as_path())?;
+            let entries = from_file(file.as_path())?;
 
             let expected = expected_values();
             assert_eq!(expected, entries);
@@ -187,7 +187,7 @@ mod success {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
 
-            let entries = load_from_file(file.as_path())?;
+            let entries = from_file(file.as_path())?;
 
             let expected = expected_values();
             assert_eq!(expected, entries);
@@ -204,7 +204,7 @@ mod success {
                 command_as_array: false,
             };
 
-            save_into_file(file.as_path(), input, &format)?;
+            to_file(&input, &format, file.as_path())?;
 
             let content = fixtures::read_json_from(file.as_path())?;
             let expected = expected_with_string_syntax();
@@ -222,7 +222,7 @@ mod success {
                 command_as_array: true,
             };
 
-            save_into_file(file.as_path(), input, &format)?;
+            to_file(&input, &format, file.as_path())?;
 
             let content = fixtures::read_json_from(file.as_path())?;
             let expected = expected_with_array_syntax();
@@ -304,7 +304,7 @@ mod success {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
 
-            let entries = load_from_file(file.as_path())?;
+            let entries = from_file(file.as_path())?;
 
             let expected = expected_values();
             assert_eq!(expected, entries);
@@ -318,7 +318,7 @@ mod success {
             let directory = fixtures::create_test_dir()?;
             let file = fixtures::create_file_with_json_content(&directory, content)?;
 
-            let entries = load_from_file(file.as_path())?;
+            let entries = from_file(file.as_path())?;
 
             let expected = expected_values();
             assert_eq!(expected, entries);
@@ -335,7 +335,7 @@ mod success {
                 command_as_array: false,
             };
 
-            save_into_file(file.as_path(), input, &format)?;
+            to_file(&input, &format, file.as_path())?;
 
             let content = fixtures::read_json_from(file.as_path())?;
             let expected = expected_with_string_syntax();
@@ -353,7 +353,7 @@ mod success {
                 command_as_array: true,
             };
 
-            save_into_file(file.as_path(), input, &format)?;
+            to_file(&input, &format, file.as_path())?;
 
             let content = fixtures::read_json_from(file.as_path())?;
             let expected = expected_with_array_syntax();

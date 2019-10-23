@@ -118,43 +118,39 @@ mod api {
     pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
 
     /// Load the content of the given file and parse it as a compilation database.
-    pub fn load_from_file(file: &path::Path) -> Result<Entries, Error> {
+    pub fn from_file(file: &path::Path) -> Result<Entries, Error> {
         let reader = fs::OpenOptions::new().read(true).open(file)?;
 
-        let result = load_from_reader(reader)?;
+        let result = from_reader(reader)?;
 
         Ok(result)
     }
 
     /// Load the content of the given stream and parse it as a compilation database.
-    pub fn load_from_reader(reader: impl io::Read) -> Result<Entries, serde_json::Error> {
+    pub fn from_reader(reader: impl io::Read) -> Result<Entries, serde_json::Error> {
         serde_json::from_reader(reader)
     }
 
     /// Persists the entries into the given file name with the given format.
-    pub fn save_into_file(
-        file: &path::Path,
-        entries: Entries,
-        format: &Format,
-    ) -> Result<(), Error> {
+    pub fn to_file(entries: &Entries, format: &Format, file: &path::Path) -> Result<(), Error> {
         let writer = fs::OpenOptions::new()
             .write(true)
             .truncate(true)
             .create(true)
             .open(file)?;
 
-        let result = save_into_writer(writer, entries, format)?;
+        let result = to_writer(entries, format, writer)?;
 
         Ok(result)
     }
 
     /// Persists the entries into the given stream with the given format.
-    pub fn save_into_writer(
-        writer: impl io::Write,
-        entries: Entries,
+    pub fn to_writer(
+        entries: &Entries,
         format: &Format,
+        writer: impl io::Write,
     ) -> Result<(), serde_json::Error> {
-        let fe = type_ser::FormattedEntries::new(&entries, format);
+        let fe = type_ser::FormattedEntries::new(entries, format);
         serde_json::to_writer_pretty(writer, &fe)
     }
 }
