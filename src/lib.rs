@@ -11,8 +11,8 @@ as an array. The definition of the JSON compilation database files is done in th
 LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
 */
 
-mod type_ser;
 mod type_de;
+mod type_ser;
 
 pub use api::*;
 pub use error::*;
@@ -160,10 +160,7 @@ mod api {
         entries: Entries,
         format: &Format,
     ) -> Result<(), serde_json::Error> {
-        let fe = type_ser::FormattedEntries {
-            entries: &entries,
-            format,
-        };
+        let fe = type_ser::FormattedEntries::new(&entries, format);
         serde_json::to_writer_pretty(writer, &fe)?;
 
         Ok(())

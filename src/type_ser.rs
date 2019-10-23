@@ -4,19 +4,20 @@ use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
 use shellwords;
 
 pub struct FormattedEntries<'a> {
-    pub entries: &'a Entries,
-    pub format: &'a Format,
+    entries: &'a Entries,
+    format: &'a Format,
 }
 
-pub struct FormattedEntry<'a> {
-    pub entry: &'a Entry,
-    pub format: &'a Format,
+impl<'a> FormattedEntries<'a> {
+    pub fn new(entries: &'a Entries, format: &'a Format) -> Self {
+        FormattedEntries { entries, format }
+    }
 }
 
 impl<'a> Serialize for FormattedEntries<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         let mut seq = serializer.serialize_seq(Some(self.entries.len()))?;
         for e in self.entries {
@@ -30,21 +31,16 @@ impl<'a> Serialize for FormattedEntries<'a> {
     }
 }
 
+struct FormattedEntry<'a> {
+    entry: &'a Entry,
+    format: &'a Format,
+}
+
 impl<'a> Serialize for FormattedEntry<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
-        fn to_command(arguments: &[String]) -> String {
-            shellwords::join(
-                arguments
-                    .iter()
-                    .map(String::as_str)
-                    .collect::<Vec<_>>()
-                    .as_ref(),
-            )
-        }
-
         let size = if self.entry.output.is_some() { 4 } else { 3 };
         let mut state = serializer.serialize_struct("Entry", size)?;
         state.serialize_field("directory", &self.entry.directory)?;
@@ -59,4 +55,14 @@ impl<'a> Serialize for FormattedEntry<'a> {
         }
         state.end()
     }
+}
+
+fn to_command(arguments: &[String]) -> String {
+    shellwords::join(
+        arguments
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .as_ref(),
+    )
 }
