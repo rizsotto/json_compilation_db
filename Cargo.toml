@@ -2,9 +2,13 @@
 name = "json_compilation_db"
 version = "0.1.0"
 authors = ["László Nagy <rizsotto at gmail dot com>"]
+description = "Rust crate to read/write JSON compilation database file."
+keywords = ["clang", "clang-tooling", "compilation-database"]
+repository = "https://github.com/rizsotto/json_compilation_db"
+homepage = "https://github.com/rizsotto/json_compilation_db"
+documentation = "https://github.com/rizsotto/json_compilation_db"
+license = "MIT"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde = "1.0"
