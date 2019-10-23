@@ -29,8 +29,6 @@ mod error {
         IoError(io::Error),
         /// Represents JSON read or write failure.
         SyntaxError(serde_json::Error),
-        /// Represents semantic failure during procession of the file content.
-        SemanticError(&'static str),
     }
 
     impl fmt::Display for Error {
@@ -38,7 +36,6 @@ mod error {
             match *self {
                 Error::IoError(_) => write!(f, "IO problem."),
                 Error::SyntaxError(_) => write!(f, "Syntax problem."),
-                Error::SemanticError(ref message) => write!(f, "Semantic problem: {}", message),
             }
         }
     }
@@ -48,7 +45,6 @@ mod error {
             match *self {
                 Error::IoError(ref cause) => Some(cause),
                 Error::SyntaxError(ref cause) => Some(cause),
-                Error::SemanticError(_) => None,
             }
         }
     }
@@ -132,9 +128,7 @@ mod api {
 
     /// Load the content of the given stream and parse it as a compilation database.
     pub fn load_from_reader(reader: impl io::Read) -> Result<Entries, serde_json::Error> {
-        let entries: Entries = serde_json::from_reader(reader)?;
-
-        Ok(entries)
+        serde_json::from_reader(reader)
     }
 
     /// Persists the entries into the given file name with the given format.
@@ -161,8 +155,6 @@ mod api {
         format: &Format,
     ) -> Result<(), serde_json::Error> {
         let fe = type_ser::FormattedEntries::new(&entries, format);
-        serde_json::to_writer_pretty(writer, &fe)?;
-
-        Ok(())
+        serde_json::to_writer_pretty(writer, &fe)
     }
 }
