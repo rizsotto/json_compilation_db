@@ -132,21 +132,21 @@ mod api {
     }
 
     /// Persists the entries into the given file name with the given format.
-    pub fn to_file(entries: &Entries, format: &Format, file: &path::Path) -> Result<(), Error> {
+    pub fn to_file(entries: &[Entry], format: &Format, file: &path::Path) -> Result<(), Error> {
         let writer = fs::OpenOptions::new()
             .write(true)
             .truncate(true)
             .create(true)
             .open(file)?;
 
-        let result = to_writer(entries, format, writer)?;
+        to_writer(entries, format, writer)?;
 
-        Ok(result)
+        Ok(())
     }
 
     /// Persists the entries into the given stream with the given format.
     pub fn to_writer(
-        entries: &Entries,
+        entries: &[Entry],
         format: &Format,
         writer: impl io::Write,
     ) -> Result<(), serde_json::Error> {

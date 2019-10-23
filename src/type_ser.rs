@@ -4,12 +4,12 @@ use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
 use shellwords;
 
 pub struct FormattedEntries<'a> {
-    entries: &'a Entries,
+    entries: &'a [Entry],
     format: &'a Format,
 }
 
 impl<'a> FormattedEntries<'a> {
-    pub fn new(entries: &'a Entries, format: &'a Format) -> Self {
+    pub fn new(entries: &'a [Entry], format: &'a Format) -> Self {
         FormattedEntries { entries, format }
     }
 }
