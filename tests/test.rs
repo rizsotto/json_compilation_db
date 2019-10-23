@@ -1,4 +1,4 @@
-use json_cdb::*;
+use json_compilation_db::*;
 use serde_json::json;
 
 mod failures {

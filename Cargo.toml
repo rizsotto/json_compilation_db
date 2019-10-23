@@ -1,5 +1,5 @@
 [package]
-name = "json-cdb"
+name = "json_compilation_db"
 version = "0.1.0"
 authors = ["László Nagy <rizsotto at gmail dot com>"]
 edition = "2018"
