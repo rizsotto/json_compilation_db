@@ -6,7 +6,7 @@ description = "Rust crate to read/write JSON compilation database file."
 keywords = ["clang", "clang-tooling", "compilation-database"]
 repository = "https://github.com/rizsotto/json_compilation_db"
 homepage = "https://github.com/rizsotto/json_compilation_db"
-documentation = "https://github.com/rizsotto/json_compilation_db"
+documentation = "https://docs.rs/json_compilation_db/"
 license = "MIT"
 edition = "2018"
 
