@@ -1,7 +1,7 @@
 use crate::api::*;
 
 use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
-use shellwords;
+use shell_words;
 
 pub struct FormattedEntries<'a> {
     entries: &'a [Entry],
@@ -58,11 +58,5 @@ impl<'a> Serialize for FormattedEntry<'a> {
 }
 
 fn to_command(arguments: &[String]) -> String {
-    shellwords::join(
-        arguments
-            .iter()
-            .map(String::as_str)
-            .collect::<Vec<_>>()
-            .as_ref(),
-    )
+    shell_words::join(arguments)
 }

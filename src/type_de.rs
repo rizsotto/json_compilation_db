@@ -4,7 +4,7 @@ use std::fmt;
 use std::path;
 
 use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
-use shellwords;
+use shell_words;
 
 impl<'de> Deserialize<'de> for Entry {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -114,7 +114,7 @@ impl<'de> Deserialize<'de> for Entry {
                         command
                             .ok_or_else(|| de::Error::missing_field("`command` or `arguments`"))
                             .and_then(|cmd| {
-                                shellwords::split(cmd.as_str()).map_err(|_| {
+                                shell_words::split(cmd.as_str()).map_err(|_| {
                                     de::Error::invalid_value(
                                         de::Unexpected::Str(cmd.as_str()),
                                         &"quotes needs to be matched",

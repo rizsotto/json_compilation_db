@@ -244,7 +244,7 @@ mod success {
                         "cc",
                         "-c",
                         "-D",
-                        "name=\\\"me\\\"",
+                        r#"name=\"me\""#,
                         "./file_a.c",
                         "-o",
                         "./file_a.o"
@@ -258,7 +258,7 @@ mod success {
                         "cc",
                         "-c",
                         "-D",
-                        "name=\"me\"",
+                        r#"name="me""#,
                         "./file_b.c",
                         "-o",
                         "./file_b.o"
@@ -273,12 +273,12 @@ mod success {
                 {
                     "directory": "/home/user",
                     "file": "./file_a.c",
-                    "arguments": ["cc", "-c", "-D", "name=\\\"me\\\"", "./file_a.c", "-o", "./file_a.o"]
+                    "arguments": ["cc", "-c", "-D", r#"name=\"me\""#, "./file_a.c", "-o", "./file_a.o"]
                 },
                 {
                     "directory": "/home/user",
                     "file": "./file_b.c",
-                    "arguments": ["cc", "-c", "-D", "name=\"me\"", "./file_b.c", "-o", "./file_b.o"]
+                    "arguments": ["cc", "-c", "-D", r#"name="me""#, "./file_b.c", "-o", "./file_b.o"]
                 }
             ])
         }
@@ -288,12 +288,12 @@ mod success {
                 {
                     "directory": "/home/user",
                     "file": "./file_a.c",
-                    "command": "cc -c -D name\\=\\\\\\\"me\\\\\\\" ./file_a.c -o ./file_a.o"
+                    "command": r#"cc -c -D 'name=\"me\"' ./file_a.c -o ./file_a.o"#
                 },
                 {
                     "directory": "/home/user",
                     "file": "./file_b.c",
-                    "command": "cc -c -D name\\=\\\"me\\\" ./file_b.c -o ./file_b.o"
+                    "command": r#"cc -c -D 'name="me"' ./file_b.c -o ./file_b.o"#
                 }
             ])
         }
