@@ -202,6 +202,7 @@ mod success {
             let input = expected_values();
             let format = Format {
                 command_as_array: false,
+                drop_output_field: false,
             };
 
             to_file(&input, &format, file.as_path())?;
@@ -220,6 +221,7 @@ mod success {
             let input = expected_values();
             let format = Format {
                 command_as_array: true,
+                drop_output_field: false,
             };
 
             to_file(&input, &format, file.as_path())?;
@@ -333,6 +335,7 @@ mod success {
             let input = expected_values();
             let format = Format {
                 command_as_array: false,
+                drop_output_field: false,
             };
 
             to_file(&input, &format, file.as_path())?;
@@ -351,6 +354,7 @@ mod success {
             let input = expected_values();
             let format = Format {
                 command_as_array: true,
+                drop_output_field: false,
             };
 
             to_file(&input, &format, file.as_path())?;

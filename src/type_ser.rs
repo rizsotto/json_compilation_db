@@ -1,7 +1,6 @@
 use crate::api::*;
 
 use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
-use shell_words;
 
 pub struct FormattedEntries<'a> {
     entries: &'a [Entry],
@@ -50,7 +49,7 @@ impl<'a> Serialize for FormattedEntry<'a> {
         } else {
             state.serialize_field("command", &to_command(&self.entry.arguments))?;
         }
-        if self.entry.output.is_some() {
+        if self.entry.output.is_some() && !self.format.drop_output_field {
             state.serialize_field("output", &self.entry.output)?;
         }
         state.end()

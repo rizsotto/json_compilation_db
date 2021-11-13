@@ -72,12 +72,15 @@ mod api {
         /// In the output the field `command` is a string and `arguments` is an array of
         /// strings. Either `command` or `arguments` is required.
         pub command_as_array: bool,
+        /// Controls if the field `output` is in the output file.
+        pub drop_output_field: bool,
     }
 
     impl Default for Format {
         fn default() -> Self {
             Format {
                 command_as_array: true,
+                drop_output_field: false,
             }
         }
     }

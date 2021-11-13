@@ -4,7 +4,6 @@ use std::fmt;
 use std::path;
 
 use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
-use shell_words;
 
 impl<'de> Deserialize<'de> for Entry {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
