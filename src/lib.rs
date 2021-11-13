@@ -18,47 +18,15 @@ pub use api::*;
 pub use error::*;
 
 mod error {
-    use std::error;
-    use std::fmt;
-    use std::io;
+    use thiserror::Error;
 
     /// This error type encompasses any error that can be returned by this crate.
-    #[derive(Debug)]
+    #[derive(Error, Debug)]
     pub enum Error {
-        /// Represents basic IO failure.
-        IoError(io::Error),
-        /// Represents JSON read or write failure.
-        SyntaxError(serde_json::Error),
-    }
-
-    impl fmt::Display for Error {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match *self {
-                Error::IoError(_) => write!(f, "IO problem."),
-                Error::SyntaxError(_) => write!(f, "Syntax problem."),
-            }
-        }
-    }
-
-    impl error::Error for Error {
-        fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-            match *self {
-                Error::IoError(ref cause) => Some(cause),
-                Error::SyntaxError(ref cause) => Some(cause),
-            }
-        }
-    }
-
-    impl From<io::Error> for Error {
-        fn from(cause: io::Error) -> Self {
-            Error::IoError(cause)
-        }
-    }
-
-    impl From<serde_json::Error> for Error {
-        fn from(cause: serde_json::Error) -> Self {
-            Error::SyntaxError(cause)
-        }
+        #[error("IO error")]
+        IoError(#[from] std::io::Error),
+        #[error("Syntax error")]
+        SyntaxError(#[from] serde_json::Error),
     }
 }
 

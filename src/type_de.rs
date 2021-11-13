@@ -17,7 +17,7 @@ impl<'de> Deserialize<'de> for Entry {
             Command,
             Arguments,
             Output,
-        };
+        }
         const FIELDS: &[&str] = &["directory", "file", "command", "arguments", "output"];
 
         impl<'de> Deserialize<'de> for Field {
