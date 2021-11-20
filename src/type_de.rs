@@ -108,6 +108,9 @@ impl<'de> Deserialize<'de> for Entry {
                 }
                 let directory = directory.ok_or_else(|| de::Error::missing_field("directory"))?;
                 let file = file.ok_or_else(|| de::Error::missing_field("file"))?;
+                if arguments.is_some() && command.is_some() {
+                    return Err(de::Error::custom("Either `command` or `arguments` field need to be specified, but not both."));
+                }
                 let arguments = arguments.map_or_else(
                     || {
                         command

@@ -59,12 +59,32 @@ mod failures {
     }
 
     #[test]
-    fn load_on_semantic_problem() -> Result<(), Error> {
+    fn load_on_bad_value() -> Result<(), Error> {
         let content = json!([
             {
                 "directory": " ",
                 "file": "./file_a.c",
                 "command": "cc -Dvalue=\"this"
+            }
+        ]);
+        let directory = fixtures::create_test_dir()?;
+        let file = fixtures::create_file_with_json_content(&directory, content)?;
+
+        let result = from_file(file.as_path());
+
+        assert_syntax_error!(result);
+
+        Ok(())
+    }
+
+    #[test]
+    fn load_on_multiple_commands() -> Result<(), Error> {
+        let content = json!([
+            {
+                "directory": " ",
+                "file": "./file_a.c",
+                "command": "cc source.c",
+                "arguments": ["cc", "source.c"],
             }
         ]);
         let directory = fixtures::create_test_dir()?;
