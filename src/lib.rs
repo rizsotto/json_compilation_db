@@ -26,16 +26,16 @@ pub enum Error {
 }
 
 /// Represents an entry of the compilation database.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Entry {
     /// The main translation unit source processed by this compilation step.
     /// This is used by tools as the key into the compilation database.
     /// There can be multiple command objects for the same file, for example if the same
     /// source file is compiled with different configurations.
     pub file: std::path::PathBuf,
-    /// The compile command executed. After JSON unescaping, this must be a valid command
-    /// to rerun the exact compilation step for the translation unit in the environment
-    /// the build system uses. Shell expansion is not supported.
+    /// The compile command executed. This must be a valid command to rerun the exact
+    /// compilation step for the translation unit in the environment the build system uses.
+    /// Shell expansion is not supported.
     pub arguments: Vec<String>,
     /// The working directory of the compilation. All paths specified in the command or
     /// file fields must be either absolute or relative to this directory.

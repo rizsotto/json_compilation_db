@@ -47,15 +47,12 @@ impl<'a> Serialize for FormattedEntry<'a> {
         if self.format.command_as_array {
             state.serialize_field("arguments", &self.entry.arguments)?;
         } else {
-            state.serialize_field("command", &to_command(&self.entry.arguments))?;
+            let command = shell_words::join(&self.entry.arguments);
+            state.serialize_field("command", &command)?;
         }
         if self.entry.output.is_some() && !self.format.drop_output_field {
             state.serialize_field("output", &self.entry.output)?;
         }
         state.end()
     }
-}
-
-fn to_command(arguments: &[String]) -> String {
-    shell_words::join(arguments)
 }
