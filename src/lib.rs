@@ -9,21 +9,17 @@ This database can have many forms. One well known and supported format is the JS
 compilation database, which is a simple JSON file having the list of compilation
 as an array. The definition of the JSON compilation database files is done in the
 LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase.html).
-*/
+ */
+
+extern crate core;
+
+use serde_json::Error;
 
 mod type_de;
 mod type_ser;
 
-use thiserror::Error;
-
-/// This error type encompasses any error that can be returned by this crate.
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("IO error")]
-    IoError(#[from] std::io::Error),
-    #[error("Syntax error")]
-    SyntaxError(#[from] serde_json::Error),
-}
+/// The conventional name for a compilation database file which tools are looking for.
+pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
 
 /// Represents an entry of the compilation database.
 #[derive(Debug, PartialEq, Eq)]
@@ -45,69 +41,22 @@ pub struct Entry {
     pub output: Option<std::path::PathBuf>,
 }
 
-/// Represents the content of the compilation database.
-///
-/// A compilation database is a JSON file, which consist of an array of “command objects”,
-/// where each command object specifies one way a translation unit is compiled in the project.
-pub type Entries = Vec<Entry>;
+pub fn read(reader: impl std::io::Read) -> impl Iterator<Item=Result<Entry, Error>> {
+    // fixme
+    use serde_json::Deserializer;
 
-/// Represents the expected format of the JSON compilation database.
-#[derive(Debug, PartialEq, Eq)]
-pub struct Format {
-    /// Controls which field to emit in the final database.
-    ///
-    /// In the output the field `command` is a string and `arguments` is an array of
-    /// strings. Either `command` or `arguments` is required.
-    pub command_as_array: bool,
-    /// Controls if the field `output` is in the output file.
-    pub drop_output_field: bool,
+    Deserializer::from_reader(reader).into_iter::<Entry>()
 }
 
-impl Default for Format {
-    fn default() -> Self {
-        Format {
-            command_as_array: true,
-            drop_output_field: false,
-        }
-    }
+pub fn write(writer: impl std::io::Write, entries: impl Iterator<Item=Entry>) -> Result<(), Error> {
+    let adapter = type_ser::IteratorAdapter::new(entries);
+    serde_json::to_writer_pretty(writer, &adapter)
 }
 
-/// The conventional name for a compilation database file which tools are looking for.
-pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
-
-/// Load the content of the given file and parse it as a compilation database.
-pub fn from_file(file: &std::path::Path) -> Result<Entries, Error> {
-    let reader = std::fs::OpenOptions::new().read(true).open(file)?;
-
-    let result = from_reader(reader)?;
-
-    Ok(result)
-}
-
-/// Load the content of the given stream and parse it as a compilation database.
-pub fn from_reader(reader: impl std::io::Read) -> Result<Entries, serde_json::Error> {
-    serde_json::from_reader(reader)
-}
-
-/// Persists the entries into the given file name with the given format.
-pub fn to_file(entries: &[Entry], format: &Format, file: &std::path::Path) -> Result<(), Error> {
-    let writer = std::fs::OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .create(true)
-        .open(file)?;
-
-    to_writer(entries, format, writer)?;
-
-    Ok(())
-}
-
-/// Persists the entries into the given stream with the given format.
-pub fn to_writer(
-    entries: &[Entry],
-    format: &Format,
-    writer: impl std::io::Write,
-) -> Result<(), serde_json::Error> {
-    let fe = type_ser::FormattedEntries::new(entries, format);
-    serde_json::to_writer_pretty(writer, &fe)
-}
+// pub trait EntryStreamReader {
+//     fn next(&mut self) -> Option<Result<Entry, Error>>;
+// }
+//
+// pub trait EntryStreamWriter {
+//     fn append(&mut self, element: Entry) -> Result<(), Error>;
+// }

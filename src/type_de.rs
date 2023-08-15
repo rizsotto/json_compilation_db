@@ -1,14 +1,14 @@
-use crate::*;
-
 use std::fmt;
 use std::path;
 
 use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
 
+use crate::Entry;
+
 impl<'de> Deserialize<'de> for Entry {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
     {
         enum Field {
             Directory,
@@ -21,8 +21,8 @@ impl<'de> Deserialize<'de> for Entry {
 
         impl<'de> Deserialize<'de> for Field {
             fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
-            where
-                D: Deserializer<'de>,
+                where
+                    D: Deserializer<'de>,
             {
                 struct FieldVisitor;
 
@@ -35,8 +35,8 @@ impl<'de> Deserialize<'de> for Entry {
                     }
 
                     fn visit_str<E>(self, value: &str) -> Result<Field, E>
-                    where
-                        E: de::Error,
+                        where
+                            E: de::Error,
                     {
                         match value {
                             "directory" => Ok(Field::Directory),
@@ -63,8 +63,8 @@ impl<'de> Deserialize<'de> for Entry {
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Entry, V::Error>
-            where
-                V: MapAccess<'de>,
+                where
+                    V: MapAccess<'de>,
             {
                 let mut directory: Option<path::PathBuf> = None;
                 let mut file: Option<path::PathBuf> = None;

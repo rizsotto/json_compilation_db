@@ -1,58 +1,43 @@
-use crate::*;
+use std::cell::RefCell;
 
-use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
-pub struct FormattedEntries<'a> {
-    entries: &'a [Entry],
-    format: &'a Format,
-}
+use crate::Entry;
 
-impl<'a> FormattedEntries<'a> {
-    pub fn new(entries: &'a [Entry], format: &'a Format) -> Self {
-        FormattedEntries { entries, format }
-    }
-}
-
-impl<'a> Serialize for FormattedEntries<'a> {
+impl Serialize for Entry {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+        where
+            S: Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.entries.len()))?;
-        for e in self.entries {
-            let fe = FormattedEntry {
-                entry: e,
-                format: self.format,
-            };
-            seq.serialize_element(&fe)?;
-        }
-        seq.end()
-    }
-}
-
-struct FormattedEntry<'a> {
-    entry: &'a Entry,
-    format: &'a Format,
-}
-
-impl<'a> Serialize for FormattedEntry<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let size = if self.entry.output.is_some() { 4 } else { 3 };
+        let size = if self.output.is_some() { 4 } else { 3 };
         let mut state = serializer.serialize_struct("Entry", size)?;
-        state.serialize_field("directory", &self.entry.directory)?;
-        state.serialize_field("file", &self.entry.file)?;
-        if self.format.command_as_array {
-            state.serialize_field("arguments", &self.entry.arguments)?;
-        } else {
-            let command = shell_words::join(&self.entry.arguments);
-            state.serialize_field("command", &command)?;
-        }
-        if self.entry.output.is_some() && !self.format.drop_output_field {
-            state.serialize_field("output", &self.entry.output)?;
+        state.serialize_field("directory", &self.directory)?;
+        state.serialize_field("file", &self.file)?;
+        state.serialize_field("arguments", &self.arguments)?;
+        if self.output.is_some() {
+            state.serialize_field("output", &self.output)?;
         }
         state.end()
+    }
+}
+
+pub struct IteratorAdapter<I>(RefCell<I>);
+
+impl<I> IteratorAdapter<I> {
+    pub(crate) fn new(iterator: I) -> Self {
+        Self(RefCell::new(iterator))
+    }
+}
+
+impl<I> Serialize for IteratorAdapter<I>
+    where
+        I: Iterator,
+        I::Item: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        serializer.collect_seq(self.0.borrow_mut().by_ref())
     }
 }

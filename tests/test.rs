@@ -1,84 +1,66 @@
+use std::io::{Cursor, Seek, SeekFrom};
+
+use serde_json::{Error, json, Value};
+use serde_json::error::Category;
+
 use json_compilation_db::*;
-use serde_json::json;
 
 mod failures {
     use super::*;
 
-    // TODO: check how meaningful the error string is.
-    macro_rules! assert_io_error {
-        ($x:expr) => {
-            match $x {
-                Err(Error::IoError(_)) => assert!(true),
-                _ => assert!(false, "shout be io error"),
-            }
-        };
-    }
-
-    // TODO: check how meaningful the error string is.
     macro_rules! assert_syntax_error {
         ($x:expr) => {
             match $x {
-                Err(Error::SyntaxError(_)) => assert!(true),
+                Some(Err(error)) => assert_eq!(error.classify(), Category::Syntax),
                 _ => assert!(false, "shout be syntax error"),
             }
         };
     }
 
-    #[test]
-    fn load_not_existing_file() {
-        let file = std::path::Path::new("/not/existing/path");
-
-        let result = from_file(file);
-
-        assert_io_error!(&result);
+    macro_rules! assert_semantic_error {
+        ($x:expr) => {
+            match $x {
+                Some(Err(error)) => assert_eq!(error.classify(), Category::Data),
+                _ => assert!(false, "shout be semantic error"),
+            }
+        };
     }
 
     #[test]
-    fn load_non_json_content() -> Result<(), Error> {
-        let directory = fixtures::create_test_dir()?;
-        let file = fixtures::create_file_with_content(&directory, br#"this is not json"#)?;
+    fn load_non_json_content() {
+        let content = r#"this is not json"#;
+        let mut result = read(content.as_bytes());
 
-        let result = from_file(file.as_path());
-
-        assert_syntax_error!(&result);
-
-        Ok(())
+        assert_syntax_error!(result.next());
+        assert!(result.next().is_none());
     }
 
     #[test]
-    fn load_not_expected_json_content() -> Result<(), Error> {
-        let content = json!({ "file": "string" });
-        let directory = fixtures::create_test_dir()?;
-        let file = fixtures::create_file_with_json_content(&directory, content)?;
+    fn load_not_expected_json_content() {
+        let content = json!({ "file": "string" }).to_string();
+        let mut result = read(content.as_bytes());
 
-        let result = from_file(file.as_path());
-
-        assert_syntax_error!(&result);
-
-        Ok(())
+        assert_semantic_error!(result.next());
+        assert!(result.next().is_none());
     }
 
     #[test]
-    fn load_on_bad_value() -> Result<(), Error> {
+    fn load_on_bad_value() {
         let content = json!([
             {
                 "directory": " ",
                 "file": "./file_a.c",
                 "command": "cc -Dvalue=\"this"
             }
-        ]);
-        let directory = fixtures::create_test_dir()?;
-        let file = fixtures::create_file_with_json_content(&directory, content)?;
+        ]).to_string();
+        let mut result = read(content.as_bytes());
 
-        let result = from_file(file.as_path());
-
-        assert_syntax_error!(result);
-
-        Ok(())
+        assert_semantic_error!(result.next());
+        assert!(result.next().is_none());
     }
 
     #[test]
-    fn load_on_multiple_commands() -> Result<(), Error> {
+    fn load_on_multiple_commands() {
         let content = json!([
             {
                 "directory": " ",
@@ -86,31 +68,11 @@ mod failures {
                 "command": "cc source.c",
                 "arguments": ["cc", "source.c"],
             }
-        ]);
-        let directory = fixtures::create_test_dir()?;
-        let file = fixtures::create_file_with_json_content(&directory, content)?;
+        ]).to_string();
+        let mut result = read(content.as_bytes());
 
-        let result = from_file(file.as_path());
-
-        assert_syntax_error!(result);
-
-        Ok(())
-    }
-
-    #[test]
-    fn save_not_existing_directory() {
-        let file = std::path::Path::new("/not/existing/path");
-        let input = vec![Entry {
-            directory: std::path::PathBuf::from("/home/user"),
-            file: std::path::PathBuf::from("./file_a.c"),
-            arguments: vec_of_strings!("cc", "-c", "./file_a.c", "-o", "./file_a.o"),
-            output: None,
-        }];
-        let format = Format::default();
-
-        let result = to_file(&input, &format, file);
-
-        assert_io_error!(&result);
+        assert_semantic_error!(result.next());
+        assert!(result.next().is_none());
     }
 }
 
@@ -121,24 +83,19 @@ mod success {
         use super::*;
 
         #[test]
-        fn load_empty_array() -> Result<(), Error> {
-            let content = json!([]);
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file_with_json_content(&directory, content)?;
+        fn load_empty_array() {
+            let content = json!([]).to_string();
 
-            let entries = from_file(file.as_path())?;
+            let mut result = read(content.as_bytes());
 
-            let expected = Entries::new();
-            assert_eq!(expected, entries);
-
-            Ok(())
+            assert!(result.next().is_none());
         }
     }
 
     mod basic {
         use super::*;
 
-        fn expected_values() -> Entries {
+        fn expected_values() -> Vec<Entry> {
             vec![
                 Entry {
                     directory: std::path::PathBuf::from("/home/user"),
@@ -188,67 +145,39 @@ mod success {
         }
 
         #[test]
-        fn load_content_with_string_command_syntax() -> Result<(), Error> {
-            let content = expected_with_string_syntax();
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file_with_json_content(&directory, content)?;
+        fn load_content_with_string_command_syntax() {
+            let content = expected_with_string_syntax().to_string();
 
-            let entries = from_file(file.as_path())?;
+            let result = read(content.as_bytes());
+            let entries: Vec<Entry> = result.map(|e| e.unwrap()).collect();
 
-            let expected = expected_values();
-            assert_eq!(expected, entries);
-
-            Ok(())
+            assert_eq!(expected_values(), entries);
         }
 
         #[test]
-        fn load_content_with_array_command_syntax() -> Result<(), Error> {
-            let content = expected_with_array_syntax();
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file_with_json_content(&directory, content)?;
+        fn load_content_with_array_command_syntax() {
+            let content = expected_with_array_syntax().to_string();
 
-            let entries = from_file(file.as_path())?;
+            let result = read(content.as_bytes());
+            let entries: Vec<Entry> = result.map(|e| e.unwrap()).collect();
 
-            let expected = expected_values();
-            assert_eq!(expected, entries);
-
-            Ok(())
-        }
-
-        #[test]
-        fn save_with_string_command_syntax() -> Result<(), Error> {
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file(&directory);
-            let input = expected_values();
-            let format = Format {
-                command_as_array: false,
-                drop_output_field: false,
-            };
-
-            to_file(&input, &format, file.as_path())?;
-
-            let content = fixtures::read_json_from(file.as_path())?;
-            let expected = expected_with_string_syntax();
-            assert_eq!(expected, content);
-
-            Ok(())
+            assert_eq!(expected_values(), entries);
         }
 
         #[test]
         fn save_with_array_command_syntax() -> Result<(), Error> {
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file(&directory);
             let input = expected_values();
-            let format = Format {
-                command_as_array: true,
-                drop_output_field: false,
-            };
 
-            to_file(&input, &format, file.as_path())?;
+            // Create fake "file"
+            let mut buffer = Cursor::new(Vec::new());
+            let result = write(&mut buffer, input.into_iter());
+            assert!(result.is_ok());
 
-            let content = fixtures::read_json_from(file.as_path())?;
-            let expected = expected_with_array_syntax();
-            assert_eq!(expected, content);
+            // Use the fake "file" as input
+            buffer.seek(SeekFrom::Start(0)).unwrap();
+            let content: Value = serde_json::from_reader(&mut buffer)?;
+
+            assert_eq!(expected_with_array_syntax(), content);
 
             Ok(())
         }
@@ -257,7 +186,7 @@ mod success {
     mod quoted {
         use super::*;
 
-        fn expected_values() -> Entries {
+        fn expected_values() -> Vec<Entry> {
             vec![
                 Entry {
                     directory: std::path::PathBuf::from("/home/user"),
@@ -305,83 +234,30 @@ mod success {
             ])
         }
 
-        fn expected_with_string_syntax() -> serde_json::Value {
-            json!([
-                {
-                    "directory": "/home/user",
-                    "file": "./file_a.c",
-                    "command": r#"cc -c -D 'name=\"me\"' ./file_a.c -o ./file_a.o"#
-                },
-                {
-                    "directory": "/home/user",
-                    "file": "./file_b.c",
-                    "command": r#"cc -c -D 'name="me"' ./file_b.c -o ./file_b.o"#
-                }
-            ])
-        }
-
         #[test]
-        fn load_content_with_string_command_syntax() -> Result<(), Error> {
-            let content = expected_with_string_syntax();
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file_with_json_content(&directory, content)?;
+        fn load_content_with_array_command_syntax() {
+            let content = expected_with_array_syntax().to_string();
 
-            let entries = from_file(file.as_path())?;
+            let result = read(content.as_bytes());
+            let entries: Vec<Entry> = result.map(|e| e.unwrap()).collect();
 
-            let expected = expected_values();
-            assert_eq!(expected, entries);
-
-            Ok(())
-        }
-
-        #[test]
-        fn load_content_with_array_command_syntax() -> Result<(), Error> {
-            let content = expected_with_array_syntax();
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file_with_json_content(&directory, content)?;
-
-            let entries = from_file(file.as_path())?;
-
-            let expected = expected_values();
-            assert_eq!(expected, entries);
-
-            Ok(())
-        }
-
-        #[test]
-        fn save_with_string_command_syntax() -> Result<(), Error> {
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file(&directory);
-            let input = expected_values();
-            let format = Format {
-                command_as_array: false,
-                drop_output_field: false,
-            };
-
-            to_file(&input, &format, file.as_path())?;
-
-            let content = fixtures::read_json_from(file.as_path())?;
-            let expected = expected_with_string_syntax();
-            assert_eq!(expected, content);
-
-            Ok(())
+            assert_eq!(expected_values(), entries);
         }
 
         #[test]
         fn save_with_array_command_syntax() -> Result<(), Error> {
-            let directory = fixtures::create_test_dir()?;
-            let file = fixtures::create_file(&directory);
             let input = expected_values();
-            let format = Format {
-                command_as_array: true,
-                drop_output_field: false,
-            };
 
-            to_file(&input, &format, file.as_path())?;
+            // Create fake "file"
+            let mut buffer = Cursor::new(Vec::new());
+            let result = write(&mut buffer, input.into_iter());
+            assert!(result.is_ok());
 
-            let content = fixtures::read_json_from(file.as_path())?;
-            let expected = expected_with_array_syntax();
-            assert_eq!(expected, content);
+            // Use the fake "file" as input
+            buffer.seek(SeekFrom::Start(0)).unwrap();
+            let content: Value = serde_json::from_reader(&mut buffer)?;
+
+            assert_eq!(expected_with_array_syntax(), content);
 
             Ok(())
         }
@@ -389,65 +265,8 @@ mod success {
 }
 
 mod fixtures {
-    use super::*;
-    use serde_json::Value;
-    use std::fs;
-    use std::io::Write;
-    use std::path;
-
     #[macro_export]
     macro_rules! vec_of_strings {
         ($($x:expr),*) => (vec![$($x.to_string()),*]);
-    }
-
-    pub fn create_test_dir() -> Result<tempfile::TempDir, Error> {
-        let directory = tempfile::Builder::new()
-            .prefix("json_cdb_test-")
-            .rand_bytes(12)
-            .tempdir()?;
-
-        Ok(directory)
-    }
-
-    pub fn create_file(directory: &tempfile::TempDir) -> path::PathBuf {
-        let mut file = directory.path().to_path_buf();
-        file.push(DEFAULT_FILE_NAME);
-
-        file
-    }
-
-    pub fn create_file_with_content(
-        directory: &tempfile::TempDir,
-        content: &[u8],
-    ) -> Result<path::PathBuf, Error> {
-        let path = create_file(directory);
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(path.as_path())?;
-
-        file.write_all(content)?;
-        Ok(path)
-    }
-
-    pub fn create_file_with_json_content(
-        directory: &tempfile::TempDir,
-        content: Value,
-    ) -> Result<path::PathBuf, Error> {
-        let path = create_file(directory);
-        let file = fs::OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(path.as_path())?;
-        serde_json::to_writer(file, &content)?;
-        Ok(path)
-    }
-
-    pub fn read_json_from(path: &path::Path) -> Result<Value, Error> {
-        let file = fs::OpenOptions::new().read(true).open(path)?;
-        let content: Value = serde_json::from_reader(file)?;
-        Ok(content)
     }
 }
