@@ -13,10 +13,12 @@ LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase
 
 extern crate core;
 
+use serde::ser::{Serializer, SerializeSeq};
 use serde_json::Error;
 
 mod type_de;
 mod type_ser;
+mod iterator;
 
 /// The conventional name for a compilation database file which tools are looking for.
 pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
@@ -41,22 +43,15 @@ pub struct Entry {
     pub output: Option<std::path::PathBuf>,
 }
 
-pub fn read(reader: impl std::io::Read) -> impl Iterator<Item=Result<Entry, Error>> {
-    // fixme
-    use serde_json::Deserializer;
-
-    Deserializer::from_reader(reader).into_iter::<Entry>()
-}
-
 pub fn write(writer: impl std::io::Write, entries: impl Iterator<Item=Entry>) -> Result<(), Error> {
-    let adapter = type_ser::IteratorAdapter::new(entries);
-    serde_json::to_writer_pretty(writer, &adapter)
+    let mut ser = serde_json::Serializer::new(writer);
+    let mut seq = ser.serialize_seq(None)?;
+    for entry in entries {
+        seq.serialize_element(&entry)?;
+    }
+    seq.end()
 }
 
-// pub trait EntryStreamReader {
-//     fn next(&mut self) -> Option<Result<Entry, Error>>;
-// }
-//
-// pub trait EntryStreamWriter {
-//     fn append(&mut self, element: Entry) -> Result<(), Error>;
-// }
+pub fn read(reader: impl std::io::Read) -> impl Iterator<Item=Result<Entry, Error>> {
+    iterator::iter_json_array(reader)
+}
