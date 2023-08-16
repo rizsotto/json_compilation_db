@@ -8,15 +8,6 @@ use json_compilation_db::*;
 mod failures {
     use super::*;
 
-    macro_rules! assert_syntax_error {
-        ($x:expr) => {
-            match $x {
-                Some(Err(error)) => assert_eq!(error.classify(), Category::Syntax),
-                _ => assert!(false, "shout be syntax error"),
-            }
-        };
-    }
-
     macro_rules! assert_semantic_error {
         ($x:expr) => {
             match $x {
@@ -31,7 +22,7 @@ mod failures {
         let content = r#"this is not json"#;
         let mut result = read(content.as_bytes());
 
-        assert_syntax_error!(result.next());
+        assert_semantic_error!(result.next());
         assert!(result.next().is_none());
     }
 

@@ -10,34 +10,57 @@ pub fn iter_json_array<T, R>(mut reader: R) -> impl Iterator<Item=Result<T>>
         T: DeserializeOwned,
         R: io::Read,
 {
-    let mut at_start = false;
+    let mut at_start = State::AtStart;
     std::iter::from_fn(move || yield_next_obj(&mut reader, &mut at_start).transpose())
 }
 
-fn yield_next_obj<T, R>(mut reader: R, at_start: &mut bool) -> Result<Option<T>>
+enum State {
+    AtStart,
+    AtMiddle,
+    Finished,
+    Failed,
+}
+
+fn yield_next_obj<T, R>(mut reader: R, state: &mut State) -> Result<Option<T>>
     where
         T: DeserializeOwned,
         R: io::Read,
 {
-    if !*at_start {
-        *at_start = true;
-        if read_skipping_ws(&mut reader)? == b'[' {
-            // read the next char to see if the array is empty
-            let peek = read_skipping_ws(&mut reader)?;
-            if peek == b']' {
-                Ok(None)
+    match state {
+        State::AtStart => {
+            if read_skipping_ws(&mut reader)? == b'[' {
+                // read the next char to see if the array is empty
+                let peek = read_skipping_ws(&mut reader)?;
+                if peek == b']' {
+                    *state = State::Finished;
+                    Ok(None)
+                } else {
+                    *state = State::AtMiddle;
+                    deserialize_single(io::Cursor::new([peek]).chain(reader)).map(Some)
+                }
             } else {
-                deserialize_single(io::Cursor::new([peek]).chain(reader)).map(Some)
+                *state = State::Failed;
+                Err(serde::de::Error::custom("expected `[`"))
             }
-        } else {
-            Err(serde::de::Error::custom("expected `[`"))
-        }
-    } else {
-        match read_skipping_ws(&mut reader)? {
-            b',' => deserialize_single(reader).map(Some),
-            b']' => Ok(None),
-            _ => Err(serde::de::Error::custom("expected `,` or `]`")),
-        }
+        },
+        State::AtMiddle => {
+            match read_skipping_ws(&mut reader)? {
+                b',' =>
+                    deserialize_single(reader).map(Some),
+                b']' => {
+                    *state = State::Finished;
+                    Ok(None)
+                },
+                _ => {
+                    *state = State::Failed;
+                    Err(serde::de::Error::custom("expected `,` or `]`"))
+                },
+            }
+        },
+        State::Finished =>
+            Ok(None),
+        State::Failed =>
+            Ok(None),
     }
 }
 
@@ -48,8 +71,10 @@ fn deserialize_single<T, R>(reader: R) -> Result<T>
 {
     let next_obj = Deserializer::from_reader(reader).into_iter::<T>().next();
     match next_obj {
-        Some(result) => result.map_err(Into::into),
-        None => Err(serde::de::Error::custom("premature EOF")),
+        Some(result) =>
+            result,
+        None =>
+            Err(serde::de::Error::custom("premature EOF")),
     }
 }
 
@@ -57,7 +82,7 @@ fn read_skipping_ws(mut reader: impl io::Read) -> Result<u8> {
     loop {
         let mut byte = 0u8;
         if let Err(io) = reader.read_exact(std::slice::from_mut(&mut byte)) {
-            return Err(Error::io(io))
+            return Err(Error::io(io));
         }
         if !byte.is_ascii_whitespace() {
             return Ok(byte);
