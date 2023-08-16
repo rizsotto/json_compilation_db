@@ -19,7 +19,7 @@ First, add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-json_compilation_db = "0.3"
+json_compilation_db = "1.0"
 ```
 
 ## License
