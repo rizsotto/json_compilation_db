@@ -12,5 +12,5 @@ edition = "2021"
 
 [dependencies]
 serde = "1.0"
-serde_json = "1.0"
+serde_json = "1.0.116"
 shell-words = "1.1"
