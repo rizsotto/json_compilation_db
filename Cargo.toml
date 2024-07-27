@@ -1,6 +1,6 @@
 [package]
 name = "json_compilation_db"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["László Nagy <rizsotto at gmail dot com>"]
 description = "Rust crate to read/write JSON compilation database file."
 keywords = ["clang", "clang-tooling", "compilation-database"]

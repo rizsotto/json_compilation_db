@@ -24,7 +24,7 @@ mod iterator;
 pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
 
 /// Represents an entry of the compilation database.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Entry {
     /// The main translation unit source processed by this compilation step.
     /// This is used by tools as the key into the compilation database.
