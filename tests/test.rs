@@ -170,6 +170,11 @@ mod success {
 
             assert_eq!(expected_with_array_syntax(), content);
 
+            // Check if the output is pretty printed
+            buffer.seek(SeekFrom::Start(0)).unwrap();
+            let output_string = String::from_utf8(buffer.into_inner()).unwrap();
+            assert!(output_string.contains('\n'), "Output is not pretty printed");
+
             Ok(())
         }
     }
@@ -249,6 +254,11 @@ mod success {
             let content: Value = serde_json::from_reader(&mut buffer)?;
 
             assert_eq!(expected_with_array_syntax(), content);
+
+            // Check if the output is pretty printed
+            buffer.seek(SeekFrom::Start(0)).unwrap();
+            let output_string = String::from_utf8(buffer.into_inner()).unwrap();
+            assert!(output_string.contains('\n'), "Output is not pretty printed");
 
             Ok(())
         }

@@ -44,7 +44,7 @@ pub struct Entry {
 }
 
 pub fn write(writer: impl std::io::Write, entries: impl Iterator<Item=Entry>) -> Result<(), Error> {
-    let mut ser = serde_json::Serializer::new(writer);
+    let mut ser = serde_json::Serializer::pretty(writer);
     let mut seq = ser.serialize_seq(None)?;
     for entry in entries {
         seq.serialize_element(&entry)?;
