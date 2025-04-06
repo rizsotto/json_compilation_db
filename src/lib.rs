@@ -13,12 +13,12 @@ LLVM project [documentation](https://clang.llvm.org/docs/JSONCompilationDatabase
 
 extern crate core;
 
-use serde::ser::{Serializer, SerializeSeq};
+use serde::ser::{SerializeSeq, Serializer};
 use serde_json::Error;
 
+mod iterator;
 mod type_de;
 mod type_ser;
-mod iterator;
 
 /// The conventional name for a compilation database file which tools are looking for.
 pub const DEFAULT_FILE_NAME: &str = "compile_commands.json";
@@ -43,7 +43,10 @@ pub struct Entry {
     pub output: Option<std::path::PathBuf>,
 }
 
-pub fn write(writer: impl std::io::Write, entries: impl Iterator<Item=Entry>) -> Result<(), Error> {
+pub fn write(
+    writer: impl std::io::Write,
+    entries: impl Iterator<Item = Entry>,
+) -> Result<(), Error> {
     let mut ser = serde_json::Serializer::pretty(writer);
     let mut seq = ser.serialize_seq(None)?;
     for entry in entries {
@@ -52,6 +55,6 @@ pub fn write(writer: impl std::io::Write, entries: impl Iterator<Item=Entry>) ->
     seq.end()
 }
 
-pub fn read(reader: impl std::io::Read) -> impl Iterator<Item=Result<Entry, Error>> {
+pub fn read(reader: impl std::io::Read) -> impl Iterator<Item = Result<Entry, Error>> {
     iterator::iter_json_array(reader)
 }
