@@ -43,6 +43,7 @@ pub struct Entry {
     pub output: Option<std::path::PathBuf>,
 }
 
+/// Serialize entries from the iterator into a Writer object.
 pub fn write(
     writer: impl std::io::Write,
     entries: impl Iterator<Item = Entry>,
@@ -55,6 +56,7 @@ pub fn write(
     seq.end()
 }
 
+/// Deserialize entries from the Reader object into an iterator of Entries.
 pub fn read(reader: impl std::io::Read) -> impl Iterator<Item = Result<Entry, Error>> {
     iterator::iter_json_array(reader)
 }

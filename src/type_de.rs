@@ -74,36 +74,11 @@ impl<'de> Deserialize<'de> for Entry {
 
                 while let Some(key) = map.next_key()? {
                     match key {
-                        Field::Directory => {
-                            if directory.is_some() {
-                                return Err(de::Error::duplicate_field("directory"));
-                            }
-                            directory = Some(map.next_value()?);
-                        }
-                        Field::File => {
-                            if file.is_some() {
-                                return Err(de::Error::duplicate_field("file"));
-                            }
-                            file = Some(map.next_value()?);
-                        }
-                        Field::Command => {
-                            if command.is_some() {
-                                return Err(de::Error::duplicate_field("command"));
-                            }
-                            command = Some(map.next_value()?);
-                        }
-                        Field::Arguments => {
-                            if arguments.is_some() {
-                                return Err(de::Error::duplicate_field("arguments"));
-                            }
-                            arguments = Some(map.next_value()?);
-                        }
-                        Field::Output => {
-                            if output.is_some() {
-                                return Err(de::Error::duplicate_field("output"));
-                            }
-                            output = Some(map.next_value()?);
-                        }
+                        Field::Directory => directory = Some(map.next_value()?),
+                        Field::File => file = Some(map.next_value()?),
+                        Field::Command => command = Some(map.next_value()?),
+                        Field::Arguments => arguments = Some(map.next_value()?),
+                        Field::Output => output = Some(map.next_value()?),
                     }
                 }
                 let directory = directory.ok_or_else(|| de::Error::missing_field("directory"))?;
