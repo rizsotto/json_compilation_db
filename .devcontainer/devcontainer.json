@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/rust
 {
-  "name": "JcdbDevEnv",
+  "name": "Rust Dev Container (${localWorkspaceFolderBasename})",
   "build": {
     "dockerfile": "Dockerfile",
   },
@@ -9,12 +9,17 @@
   // Override the automatic workspace mount to add the :z SELinux relabel option.
   // This is required on Fedora/RHEL hosts where SELinux is enforcing, otherwise
   // the bind-mounted directory is inaccessible inside the container.
-  "workspaceFolder": "/workspaces/project",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/project,type=bind,z=true",
+  // ${localWorkspaceFolderBasename} expands to the project directory name, so
+  // this file stays generic across Rust projects.
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,z=true",
 
   "mounts": [
-    // Make the cargo registry persistent across container rebuilds.
-    "source=devcontainer-cargo-cache-${devcontainerId},target=/usr/local/cargo,type=volume",
+    // Persist the cargo registry (downloaded crate cache) across container
+    // rebuilds. Targets the registry subdir of CARGO_HOME (/root/.cargo, set in
+    // the Dockerfile) rather than /root/.cargo itself, so the volume does not
+    // shadow the rustc/cargo binaries installed into /root/.cargo/bin at build.
+    "source=devcontainer-cargo-cache-${devcontainerId},target=/root/.cargo/registry,type=volume",
     // Forward the SSH agent socket from the host so SSH keys are available
     // inside the container for commit signing and remote operations.
     // Requires the SSH agent to be running on the host: eval $(ssh-agent) && ssh-add
@@ -23,6 +28,11 @@
     // Mount the host gitconfig (read-only) so git user identity, signing key,
     // and gpg/ssh signing settings are inherited inside the container.
     "source=${localEnv:HOME}/.gitconfig,target=/root/.gitconfig,type=bind,readonly=true,z=true",
+    // Mount the host ~/.claude (read-write) so Claude credentials, settings,
+    // rules, and skills are shared with the container. Writable so refreshed
+    // auth tokens and session state persist back to the host, avoiding repeated
+    // re-authentication across container rebuilds.
+    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind,z=true",
   ],
 
   // Point git at the forwarded SSH agent socket.
